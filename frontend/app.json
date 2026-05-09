@@ -38,6 +38,14 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Splitify needs access to your photos to upload receipts.",
+          "cameraPermission": "Splitify needs camera access to scan receipts."
+        }
       ]
     ],
     "experiments": {
