@@ -23,7 +23,7 @@ public class AssignItemRequest {
         @NotNull
         private SplitType splitType;
 
-        // Required for PERCENTAGE and FIXED; omit for EQUAL
+        // Required for PERCENTAGE, FIXED, and COUNT; omit for EQUAL
         private BigDecimal splitValue;
     }
 }

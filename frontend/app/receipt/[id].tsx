@@ -33,6 +33,7 @@ function AssignModal({
   item,
   members,
   receiptId,
+  currency,
   onClose,
   onDone,
 }: {
@@ -40,6 +41,7 @@ function AssignModal({
   item: ReceiptItemDto | null;
   members: GroupMemberDto[];
   receiptId: string;
+  currency: string;
   onClose: () => void;
   onDone: (updated: ReceiptItemDto) => void;
 }) {
@@ -102,14 +104,13 @@ function AssignModal({
           <Text style={styles.modalTitle}>Assign Item</Text>
           {item && (
             <>
-              <Text style={styles.modalSub}>
-                {item.name} — {item.totalPrice != null ? `${Number(item.totalPrice).toFixed(2)}` : ''}
-              </Text>
-              {splitType === 'COUNT' && (
-                <Text style={styles.countHint}>
-                  Total quantity: {Number(item.quantity).toFixed(item.quantity % 1 === 0 ? 0 : 3)}
+              <Text style={styles.modalSub}>{item.name}</Text>
+              <View style={styles.modalItemMeta}>
+                <Text style={styles.modalItemMetaText}>
+                  {Number(item.quantity).toFixed(item.quantity % 1 === 0 ? 0 : 3)} × {currency} {Number(item.unitPrice).toFixed(2)}
                 </Text>
-              )}
+                <Text style={styles.modalItemTotal}>{currency} {Number(item.totalPrice).toFixed(2)}</Text>
+              </View>
             </>
           )}
 
@@ -394,6 +395,7 @@ export default function ReceiptDetailScreen() {
         item={assignTarget}
         members={members}
         receiptId={receipt.id}
+        currency={currency}
         onClose={() => setAssignTarget(null)}
         onDone={handleItemUpdated}
       />
@@ -535,8 +537,11 @@ const styles = StyleSheet.create({
   },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 16 },
   modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.text, marginBottom: 4 },
-  modalSub: { fontSize: 14, color: Colors.textSecondary, marginBottom: 4 },
-  countHint: { fontSize: 12, color: Colors.primary, fontWeight: '600', marginBottom: 12 },
+  modalSub: { fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 6 },
+  modalItemMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  modalItemMetaText: { fontSize: 13, color: Colors.textSecondary },
+  modalItemTotal: { fontSize: 15, fontWeight: '800', color: Colors.text },
+  countHint: { fontSize: 12, color: Colors.primary, fontWeight: '600', marginBottom: 8, marginTop: -6 },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 8 },
   splitTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   typeChip: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center' },

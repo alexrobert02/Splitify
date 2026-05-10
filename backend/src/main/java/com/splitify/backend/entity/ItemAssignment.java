@@ -34,7 +34,7 @@ public class ItemAssignment {
     @Column(nullable = false)
     private SplitType splitType;
 
-    // Percentage (0-100) for PERCENTAGE, fixed amount for FIXED, null for EQUAL
+    // Percentage (0-100) for PERCENTAGE, fixed amount for FIXED, unit count for COUNT, null for EQUAL
     @Column(precision = 10, scale = 4)
     private BigDecimal splitValue;
 
