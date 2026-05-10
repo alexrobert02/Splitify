@@ -101,14 +101,21 @@ function AssignModal({
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Assign Item</Text>
           {item && (
-            <Text style={styles.modalSub}>
-              {item.name} — {item.totalPrice != null ? `${Number(item.totalPrice).toFixed(2)}` : ''}
-            </Text>
+            <>
+              <Text style={styles.modalSub}>
+                {item.name} — {item.totalPrice != null ? `${Number(item.totalPrice).toFixed(2)}` : ''}
+              </Text>
+              {splitType === 'COUNT' && (
+                <Text style={styles.countHint}>
+                  Total quantity: {Number(item.quantity).toFixed(item.quantity % 1 === 0 ? 0 : 3)}
+                </Text>
+              )}
+            </>
           )}
 
           <Text style={styles.sectionLabel}>Split type</Text>
           <View style={styles.splitTypeRow}>
-            {(['EQUAL', 'PERCENTAGE', 'FIXED'] as SplitType[]).map(t => (
+            {(['EQUAL', 'PERCENTAGE', 'FIXED', 'COUNT'] as SplitType[]).map(t => (
               <TouchableOpacity
                 key={t}
                 style={[styles.typeChip, splitType === t && styles.typeChipActive]}
@@ -143,7 +150,7 @@ function AssignModal({
                   {isSelected && splitType !== 'EQUAL' && (
                     <TextInput
                       style={styles.valueInput}
-                      placeholder={splitType === 'PERCENTAGE' ? '%' : 'amt'}
+                      placeholder={splitType === 'PERCENTAGE' ? '%' : splitType === 'COUNT' ? 'qty' : 'amt'}
                       placeholderTextColor={Colors.textMuted}
                       value={customValues[m.userId] ?? ''}
                       onChangeText={v => setCustomValues(prev => ({ ...prev, [m.userId]: v }))}
@@ -528,7 +535,8 @@ const styles = StyleSheet.create({
   },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 16 },
   modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.text, marginBottom: 4 },
-  modalSub: { fontSize: 14, color: Colors.textSecondary, marginBottom: 16 },
+  modalSub: { fontSize: 14, color: Colors.textSecondary, marginBottom: 4 },
+  countHint: { fontSize: 12, color: Colors.primary, fontWeight: '600', marginBottom: 12 },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 8 },
   splitTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   typeChip: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center' },

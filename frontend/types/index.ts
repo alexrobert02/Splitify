@@ -29,7 +29,7 @@ export interface GroupDto {
   members: GroupMemberDto[];
 }
 
-export type SplitType = 'EQUAL' | 'PERCENTAGE' | 'FIXED';
+export type SplitType = 'EQUAL' | 'PERCENTAGE' | 'FIXED' | 'COUNT';
 export type ReceiptStatus = 'PROCESSING' | 'PROCESSED' | 'FAILED';
 
 export interface AssignmentDto {

@@ -24,6 +24,7 @@ public class SplitCalculationService {
             case EQUAL -> calculateEqual(item, assignments);
             case PERCENTAGE -> calculatePercentage(item, assignments);
             case FIXED -> calculateFixed(item, assignments);
+            case COUNT -> calculateCount(item, assignments);
         }
     }
 
@@ -68,6 +69,34 @@ public class SplitCalculationService {
 
         for (ItemAssignment assignment : assignments) {
             assignment.setAmountOwed(assignment.getSplitValue().setScale(2, RoundingMode.HALF_UP));
+        }
+    }
+
+    private void calculateCount(ReceiptItem item, List<ItemAssignment> assignments) {
+        BigDecimal totalAssigned = assignments.stream()
+            .map(a -> a.getSplitValue() != null ? a.getSplitValue() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (totalAssigned.compareTo(item.getQuantity()) != 0) {
+            throw new BadRequestException(
+                "Assigned counts must sum to item quantity (" + item.getQuantity() + "), got: " + totalAssigned
+            );
+        }
+
+        BigDecimal totalPrice = item.getTotalPrice();
+        BigDecimal totalQty = item.getQuantity();
+        BigDecimal runningSum = BigDecimal.ZERO;
+
+        for (int i = 0; i < assignments.size(); i++) {
+            BigDecimal qty = assignments.get(i).getSplitValue();
+            BigDecimal amount;
+            if (i == assignments.size() - 1) {
+                amount = totalPrice.subtract(runningSum).setScale(2, RoundingMode.HALF_UP);
+            } else {
+                amount = totalPrice.multiply(qty).divide(totalQty, 2, RoundingMode.HALF_UP);
+                runningSum = runningSum.add(amount);
+            }
+            assignments.get(i).setAmountOwed(amount);
         }
     }
 
