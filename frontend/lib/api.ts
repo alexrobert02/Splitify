@@ -9,7 +9,7 @@ import type {
   AssigneeEntry,
 } from '@/types';
 
-const BASE_URL = 'http://192.168.0.18:8080';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8080';
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await storage.getToken();

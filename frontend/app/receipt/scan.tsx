@@ -12,7 +12,7 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +20,7 @@ import { api } from '@/lib/api';
 import { Colors } from '@/constants/Colors';
 
 export default function ScanScreen() {
+  const { groupId } = useLocalSearchParams<{ groupId?: string }>();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -55,7 +56,7 @@ export default function ScanScreen() {
     if (!imageUri) return;
     setUploading(true);
     try {
-      const receipt = await api.receipts.scan(imageUri, title.trim() || undefined);
+      const receipt = await api.receipts.scan(imageUri, title.trim() || undefined, groupId);
       Alert.alert(
         'Receipt uploaded!',
         `Found ${receipt.items?.length ?? 0} items. OCR is processing your receipt.`,

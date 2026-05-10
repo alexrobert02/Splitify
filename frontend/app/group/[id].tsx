@@ -181,7 +181,7 @@ export default function GroupDetailScreen() {
               <Text style={styles.emptyText}>No receipts in this group yet</Text>
               <TouchableOpacity
                 style={styles.scanGroupBtn}
-                onPress={() => router.push('/receipt/scan' as any)}
+                onPress={() => router.push(`/receipt/scan?groupId=${id}` as any)}
               >
                 <Ionicons name="camera" size={16} color="#fff" />
                 <Text style={styles.scanGroupBtnText}>Scan Receipt</Text>
@@ -214,6 +214,15 @@ export default function GroupDetailScreen() {
             ))
           )}
         </ScrollView>
+      )}
+
+      {tab === 'receipts' && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => router.push(`/receipt/scan?groupId=${id}` as any)}
+        >
+          <Ionicons name="camera" size={22} color="#fff" />
+        </TouchableOpacity>
       )}
 
       <Modal visible={addModal} transparent animationType="slide">
@@ -331,6 +340,22 @@ const styles = StyleSheet.create({
   ownerText: { color: Colors.primary },
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyText: { fontSize: 15, color: Colors.textSecondary },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    width: 56,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   scanGroupBtn: {
     flexDirection: 'row',
     alignItems: 'center',

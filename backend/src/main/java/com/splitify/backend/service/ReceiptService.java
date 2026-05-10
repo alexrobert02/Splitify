@@ -22,9 +22,9 @@ public class ReceiptService {
 
     private final ReceiptRepository receiptRepository;
     private final ReceiptItemRepository receiptItemRepository;
-    private final ItemAssignmentRepository itemAssignmentRepository;
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
+    private final GroupMemberRepository groupMemberRepository;
     private final OcrService ocrService;
     private final SplitCalculationService splitCalculationService;
 
@@ -124,9 +124,10 @@ public class ReceiptService {
 
         ReceiptItem item = findItem(itemId);
 
+        item.getAssignments().clear();
+        receiptItemRepository.saveAndFlush(item);
+
         if (request.getAssignees() == null || request.getAssignees().isEmpty()) {
-            itemAssignmentRepository.deleteByItemId(itemId);
-            item.getAssignments().clear();
             return toItemDto(item);
         }
 
@@ -138,14 +139,11 @@ public class ReceiptService {
             throw new BadRequestException("One or more users not found");
         }
 
-        itemAssignmentRepository.deleteByItemId(itemId);
-        item.getAssignments().clear();
-
         List<ItemAssignment> assignments =
             splitCalculationService.buildAssignments(item, request.getAssignees(), users);
 
-        itemAssignmentRepository.saveAll(assignments);
-        item.setAssignments(assignments);
+        item.getAssignments().addAll(assignments);
+        receiptItemRepository.saveAndFlush(item);
 
         return toItemDto(item);
     }
@@ -262,9 +260,10 @@ public class ReceiptService {
     }
 
     private void assertAccess(Receipt receipt, UUID userId) {
-        if (!receipt.getScannedBy().getId().equals(userId)) {
-            throw new BadRequestException("You do not have access to this receipt");
-        }
+        if (receipt.getScannedBy().getId().equals(userId)) return;
+        if (receipt.getGroup() != null &&
+                groupMemberRepository.existsByGroupIdAndUserId(receipt.getGroup().getId(), userId)) return;
+        throw new BadRequestException("You do not have access to this receipt");
     }
 
     // ---- DTO mapping ----
