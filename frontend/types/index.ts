@@ -9,6 +9,7 @@ export interface UserDto {
   id: string;
   email: string;
   name: string;
+  revolutTag?: string;
 }
 
 export interface GroupMemberDto {
@@ -56,11 +57,13 @@ export interface ReceiptDto {
   title: string;
   scannedById: string;
   scannedByName: string;
+  scannedByRevolutTag?: string;
   groupId: string | null;
   groupName: string | null;
   totalAmount: number;
   currency: string;
   status: ReceiptStatus;
+  finalized: boolean;
   scannedAt: string;
   items: ReceiptItemDto[];
 }
@@ -77,6 +80,7 @@ export interface ParticipantSummaryDto {
   email: string;
   totalOwed: number;
   itemBreakdown: ItemContributionDto[];
+  paid: boolean;
 }
 
 export interface ReceiptSummaryDto {
@@ -84,8 +88,6 @@ export interface ReceiptSummaryDto {
   title: string;
   totalAmount: number;
   currency: string;
-  assignedAmount: number;
-  unassignedAmount: number;
   participants: ParticipantSummaryDto[];
 }
 

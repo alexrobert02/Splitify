@@ -84,6 +84,28 @@ public class ReceiptController {
         return ResponseEntity.ok(receiptService.getSummary(receiptId, currentUserId(userDetails)));
     }
 
+    @PostMapping("/{receiptId}/finalize")
+    public ResponseEntity<ReceiptDto> finalizeReceipt(@AuthenticationPrincipal UserDetails userDetails,
+                                                       @PathVariable UUID receiptId) {
+        return ResponseEntity.ok(receiptService.finalizeReceipt(receiptId, currentUserId(userDetails)));
+    }
+
+    @PostMapping("/{receiptId}/participants/{userId}/pay")
+    public ResponseEntity<Void> markPaid(@AuthenticationPrincipal UserDetails userDetails,
+                                          @PathVariable UUID receiptId,
+                                          @PathVariable UUID userId) {
+        receiptService.markPaid(receiptId, currentUserId(userDetails), userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{receiptId}/participants/{userId}/pay")
+    public ResponseEntity<Void> markUnpaid(@AuthenticationPrincipal UserDetails userDetails,
+                                            @PathVariable UUID receiptId,
+                                            @PathVariable UUID userId) {
+        receiptService.markUnpaid(receiptId, currentUserId(userDetails), userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{receiptId}")
     public ResponseEntity<Void> deleteReceipt(@AuthenticationPrincipal UserDetails userDetails,
                                                @PathVariable UUID receiptId) {

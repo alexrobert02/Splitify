@@ -29,6 +29,9 @@ public class User {
     @Column(nullable = false)
     private String name;
 
+    @Column(name = "revolut_tag")
+    private String revolutTag;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

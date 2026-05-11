@@ -11,6 +11,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -182,63 +183,134 @@ function AssignModal({
 }
 
 // ─── Summary Tab ──────────────────────────────────────────────────────────────
-function SummaryTab({ receiptId }: { receiptId: string }) {
+function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
+  const { user } = useAuth();
   const [summary, setSummary] = useState<ReceiptSummaryDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [togglingPaid, setTogglingPaid] = useState(false);
 
-  useEffect(() => {
-    api.receipts.summary(receiptId)
+  const loadSummary = useCallback(() => {
+    setLoading(true);
+    api.receipts.summary(receipt.id)
       .then(setSummary)
       .catch(e => Alert.alert('Error', e.message))
       .finally(() => setLoading(false));
-  }, [receiptId]);
+  }, [receipt.id]);
+
+  useEffect(() => { loadSummary(); }, [loadSummary]);
+
+  const openRevolutPay = (revolutTag: string, amount: number, currency: string, scannerName: string) => {
+    Alert.alert(
+      'Pay with Revolut',
+      `Send ${currency} ${Number(amount).toFixed(2)} to @${revolutTag} (${scannerName})`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Open Revolut',
+          onPress: () => Linking.openURL(`https://revolut.me/${revolutTag}`),
+        },
+      ],
+    );
+  };
+
+  const togglePaid = async (participantId: string, currentlyPaid: boolean) => {
+    setTogglingPaid(true);
+    try {
+      if (currentlyPaid) {
+        await api.receipts.markUnpaid(receipt.id, participantId);
+      } else {
+        await api.receipts.markPaid(receipt.id, participantId);
+      }
+      loadSummary();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setTogglingPaid(false);
+    }
+  };
 
   if (loading) return <ActivityIndicator style={{ marginTop: 40 }} color={Colors.primary} />;
   if (!summary) return null;
 
   const currency = summary.currency ?? 'RON';
+  const isScanner = user?.id === receipt.scannedById;
 
   return (
     <ScrollView contentContainerStyle={styles.summaryContent}>
-      <View style={styles.summaryTotals}>
-        <View style={styles.totalBox}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{currency} {Number(summary.totalAmount).toFixed(2)}</Text>
-        </View>
-        <View style={styles.totalBox}>
-          <Text style={styles.totalLabel}>Assigned</Text>
-          <Text style={[styles.totalValue, { color: Colors.success }]}>
-            {currency} {Number(summary.assignedAmount).toFixed(2)}
-          </Text>
-        </View>
-        <View style={styles.totalBox}>
-          <Text style={styles.totalLabel}>Unassigned</Text>
-          <Text style={[styles.totalValue, { color: summary.unassignedAmount > 0 ? Colors.warning : Colors.success }]}>
-            {currency} {Number(summary.unassignedAmount).toFixed(2)}
-          </Text>
-        </View>
-      </View>
+      {summary.participants.map(p => {
+        const isCurrentUser = p.userId === user?.id;
+        const canPay =
+          isCurrentUser &&
+          !isScanner &&
+          p.totalOwed > 0 &&
+          !!receipt.scannedByRevolutTag;
 
-      {summary.participants.map(p => (
-        <View key={p.userId} style={styles.participantCard}>
-          <View style={styles.participantHeader}>
-            <View style={styles.pAvatar}>
-              <Text style={styles.pAvatarText}>{p.name.slice(0, 2).toUpperCase()}</Text>
+        return (
+          <View key={p.userId} style={styles.participantCard}>
+            <View style={styles.participantHeader}>
+              <View style={styles.pAvatar}>
+                <Text style={styles.pAvatarText}>{p.name.slice(0, 2).toUpperCase()}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.pName}>{p.name}{isCurrentUser ? ' (you)' : ''}</Text>
+                <Text style={styles.pEmail}>{p.email}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                <Text style={styles.pTotal}>{currency} {Number(p.totalOwed).toFixed(2)}</Text>
+                {p.paid && (
+                  <View style={styles.paidBadge}>
+                    <Ionicons name="checkmark-circle" size={11} color={Colors.success} />
+                    <Text style={styles.paidBadgeText}>Paid</Text>
+                  </View>
+                )}
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.pName}>{p.name}</Text>
-              <Text style={styles.pEmail}>{p.email}</Text>
-            </View>
-            <Text style={styles.pTotal}>{currency} {Number(p.totalOwed).toFixed(2)}</Text>
+            {p.itemBreakdown?.map(item => (
+              <View key={item.itemId} style={styles.breakdownRow}>
+                <Text style={styles.breakdownItem}>{item.itemName}</Text>
+                <Text style={styles.breakdownAmt}>{currency} {Number(item.amountOwed).toFixed(2)}</Text>
+              </View>
+            ))}
+            {/* Scanner: toggle paid status for other participants (not themselves) */}
+            {isScanner && p.userId !== user?.id && p.totalOwed > 0 && (
+              <TouchableOpacity
+                style={[styles.markPaidBtn, p.paid && styles.markUnpaidBtn]}
+                onPress={() => togglePaid(p.userId, p.paid)}
+                disabled={togglingPaid}
+              >
+                {togglingPaid
+                  ? <ActivityIndicator size="small" color={p.paid ? Colors.textSecondary : Colors.success} />
+                  : <>
+                      <Ionicons
+                        name={p.paid ? 'close-circle-outline' : 'checkmark-circle-outline'}
+                        size={15}
+                        color={p.paid ? Colors.textSecondary : Colors.success}
+                      />
+                      <Text style={[styles.markPaidText, p.paid && styles.markUnpaidText]}>
+                        {p.paid ? 'Mark unpaid' : 'Mark as paid'}
+                      </Text>
+                    </>
+                }
+              </TouchableOpacity>
+            )}
+            {/* Participant: pay with Revolut button on their own card */}
+            {canPay && !p.paid && (
+              <TouchableOpacity
+                style={styles.revolutBtn}
+                onPress={() => openRevolutPay(
+                  receipt.scannedByRevolutTag!,
+                  p.totalOwed,
+                  currency,
+                  receipt.scannedByName,
+                )}
+              >
+                <Ionicons name="card-outline" size={15} color="#fff" />
+                <Text style={styles.revolutBtnText}>Pay with Revolut</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          {p.itemBreakdown?.map(item => (
-            <View key={item.itemId} style={styles.breakdownRow}>
-              <Text style={styles.breakdownItem}>{item.itemName}</Text>
-              <Text style={styles.breakdownAmt}>{currency} {Number(item.amountOwed).toFixed(2)}</Text>
-            </View>
-          ))}
-        </View>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 }
@@ -246,11 +318,12 @@ function SummaryTab({ receiptId }: { receiptId: string }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ReceiptDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const [receipt, setReceipt] = useState<ReceiptDto | null>(null);
   const [members, setMembers] = useState<GroupMemberDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'items' | 'summary'>('items');
   const [assignTarget, setAssignTarget] = useState<ReceiptItemDto | null>(null);
+  const [proceeding, setProceeding] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -280,6 +353,19 @@ export default function ReceiptDetailScreen() {
     });
   }, []);
 
+  const handleProceed = async () => {
+    if (!receipt) return;
+    setProceeding(true);
+    try {
+      const updated = await api.receipts.finalize(receipt.id);
+      setReceipt(updated);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setProceeding(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -292,6 +378,9 @@ export default function ReceiptDetailScreen() {
 
   const currency = receipt.currency ?? 'RON';
   const statusColor = receipt.status === 'PROCESSED' ? Colors.success : receipt.status === 'PROCESSING' ? Colors.warning : Colors.error;
+  const isScanner = user?.id === receipt.scannedById;
+  const allAssigned = (receipt.items?.length ?? 0) > 0 &&
+    receipt.items.every(item => (item.assignments?.length ?? 0) > 0);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -328,66 +417,72 @@ export default function ReceiptDetailScreen() {
         </View>
       </View>
 
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tab, tab === 'items' && styles.tabActive]}
-          onPress={() => setTab('items')}
-        >
-          <Text style={[styles.tabText, tab === 'items' && styles.tabTextActive]}>Items</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, tab === 'summary' && styles.tabActive]}
-          onPress={() => setTab('summary')}
-        >
-          <Text style={[styles.tabText, tab === 'summary' && styles.tabTextActive]}>Split Summary</Text>
-        </TouchableOpacity>
-      </View>
-
-      {tab === 'items' ? (
-        <ScrollView contentContainerStyle={styles.itemsList}>
-          {receipt.items?.length === 0 && (
-            <Text style={styles.noItems}>No items detected. Try scanning again.</Text>
-          )}
-          {receipt.items?.map(item => {
-            const assignedCount = item.assignments?.length ?? 0;
-            return (
-              <View key={item.id} style={styles.itemCard}>
-                <View style={styles.itemTop}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemMeta}>
-                      {Number(item.quantity).toFixed(0)} × {currency} {Number(item.unitPrice).toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.itemRight}>
-                    <Text style={styles.itemTotal}>{currency} {Number(item.totalPrice).toFixed(2)}</Text>
-                    <TouchableOpacity
-                      style={styles.assignBtn}
-                      onPress={() => setAssignTarget(item)}
-                    >
-                      <Ionicons name="person-add" size={14} color={Colors.primary} />
-                      <Text style={styles.assignBtnText}>
-                        {assignedCount > 0 ? `${assignedCount} assigned` : 'Assign'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                {item.assignments?.length > 0 && (
-                  <View style={styles.assigneeList}>
-                    {item.assignments.map(a => (
-                      <View key={a.id} style={styles.assigneeChip}>
-                        <Text style={styles.assigneeName}>{a.userName}</Text>
-                        <Text style={styles.assigneeAmt}>{currency} {Number(a.amountOwed).toFixed(2)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </ScrollView>
+      {receipt.finalized ? (
+        <SummaryTab receipt={receipt} />
       ) : (
-        <SummaryTab receiptId={receipt.id} />
+        <View style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.itemsList}>
+            {receipt.items?.length === 0 && (
+              <Text style={styles.noItems}>No items detected. Try scanning again.</Text>
+            )}
+            {receipt.items?.map(item => {
+              const assignedCount = item.assignments?.length ?? 0;
+              return (
+                <View key={item.id} style={styles.itemCard}>
+                  <View style={styles.itemTop}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemMeta}>
+                        {Number(item.quantity).toFixed(0)} × {currency} {Number(item.unitPrice).toFixed(2)}
+                      </Text>
+                    </View>
+                    <View style={styles.itemRight}>
+                      <Text style={styles.itemTotal}>{currency} {Number(item.totalPrice).toFixed(2)}</Text>
+                      <TouchableOpacity
+                        style={styles.assignBtn}
+                        onPress={() => setAssignTarget(item)}
+                      >
+                        <Ionicons name="person-add" size={14} color={Colors.primary} />
+                        <Text style={styles.assignBtnText}>
+                          {assignedCount > 0 ? `${assignedCount} assigned` : 'Assign'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  {item.assignments?.length > 0 && (
+                    <View style={styles.assigneeList}>
+                      {item.assignments.map(a => (
+                        <View key={a.id} style={styles.assigneeChip}>
+                          <Text style={styles.assigneeName}>{a.userName}</Text>
+                          <Text style={styles.assigneeAmt}>{currency} {Number(a.amountOwed).toFixed(2)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </ScrollView>
+          {isScanner && (
+            <View style={styles.proceedBar}>
+              <TouchableOpacity
+                style={[styles.proceedBtn, !allAssigned && styles.proceedBtnDisabled]}
+                onPress={handleProceed}
+                disabled={!allAssigned || proceeding}
+              >
+                {proceeding
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <>
+                      <Ionicons name="checkmark-done-outline" size={18} color="#fff" />
+                      <Text style={styles.proceedBtnText}>
+                        {allAssigned ? 'Proceed to Summary' : 'Assign all items to proceed'}
+                      </Text>
+                    </>
+                }
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       )}
 
       <AssignModal
@@ -525,6 +620,60 @@ const styles = StyleSheet.create({
   breakdownRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: 1, borderTopColor: Colors.divider },
   breakdownItem: { fontSize: 13, color: Colors.textSecondary },
   breakdownAmt: { fontSize: 13, fontWeight: '600', color: Colors.text },
+  paidBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: Colors.successLight,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  paidBadgeText: { fontSize: 10, fontWeight: '700', color: Colors.success },
+  revolutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#5B2EDA',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: 12,
+  },
+  revolutBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  markPaidBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.successLight,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: 12,
+  },
+  markUnpaidBtn: { backgroundColor: Colors.background },
+  markPaidText: { fontSize: 13, fontWeight: '700', color: Colors.success },
+  markUnpaidText: { color: Colors.textSecondary },
+  proceedBar: {
+    padding: 16,
+    paddingBottom: 12,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  proceedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+  },
+  proceedBtnDisabled: { backgroundColor: Colors.border },
+  proceedBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   // Modal
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: Colors.overlay },
   modalSheet: {

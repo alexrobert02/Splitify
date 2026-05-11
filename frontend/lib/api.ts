@@ -46,10 +46,10 @@ export const api = {
 
   users: {
     me: () => request<UserDto>('/api/users/me'),
-    update: (name: string) =>
+    update: (data: { name?: string; revolutTag?: string }) =>
       request<UserDto>('/api/users/me', {
         method: 'PUT',
-        body: JSON.stringify({ name }),
+        body: JSON.stringify(data),
       }),
   },
 
@@ -123,7 +123,12 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ assignees }),
       }),
+    finalize: (id: string) => request<ReceiptDto>(`/api/receipts/${id}/finalize`, { method: 'POST' }),
     summary: (id: string) => request<ReceiptSummaryDto>(`/api/receipts/${id}/summary`),
+    markPaid: (receiptId: string, userId: string) =>
+      request<void>(`/api/receipts/${receiptId}/participants/${userId}/pay`, { method: 'POST' }),
+    markUnpaid: (receiptId: string, userId: string) =>
+      request<void>(`/api/receipts/${receiptId}/participants/${userId}/pay`, { method: 'DELETE' }),
     delete: (id: string) => request<void>(`/api/receipts/${id}`, { method: 'DELETE' }),
   },
 };

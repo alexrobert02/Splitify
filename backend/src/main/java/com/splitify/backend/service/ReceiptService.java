@@ -2,6 +2,7 @@ package com.splitify.backend.service;
 
 import com.splitify.backend.dto.receipt.*;
 import com.splitify.backend.entity.*;
+import com.splitify.backend.repository.PaymentRepository;
 import com.splitify.backend.exception.BadRequestException;
 import com.splitify.backend.exception.ResourceNotFoundException;
 import com.splitify.backend.repository.*;
@@ -12,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -25,6 +26,7 @@ public class ReceiptService {
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
     private final GroupMemberRepository groupMemberRepository;
+    private final PaymentRepository paymentRepository;
     private final OcrService ocrService;
     private final SplitCalculationService splitCalculationService;
 
@@ -153,7 +155,6 @@ public class ReceiptService {
         assertAccess(receipt, currentUserId);
 
         Map<UUID, ParticipantSummaryDto> participantMap = new LinkedHashMap<>();
-        BigDecimal assignedTotal = BigDecimal.ZERO;
 
         for (ReceiptItem item : receipt.getItems()) {
             for (ItemAssignment assignment : item.getAssignments()) {
@@ -163,7 +164,8 @@ public class ReceiptService {
                     assignment.getUser().getName(),
                     assignment.getUser().getEmail(),
                     BigDecimal.ZERO,
-                    new ArrayList<>()
+                    new ArrayList<>(),
+                    false
                 ));
 
                 ParticipantSummaryDto participant = participantMap.get(uid);
@@ -172,23 +174,57 @@ public class ReceiptService {
                 participant.getItemBreakdown().add(new ParticipantSummaryDto.ItemContributionDto(
                     item.getId(), item.getName(), amount
                 ));
-
-                assignedTotal = assignedTotal.add(amount);
             }
         }
 
+        Set<UUID> paidUserIds = paymentRepository.findByReceiptId(receiptId)
+            .stream().map(p -> p.getPayer().getId()).collect(Collectors.toSet());
+        participantMap.values().forEach(p -> p.setPaid(paidUserIds.contains(p.getUserId())));
+
+        UUID scannerId = receipt.getScannedBy().getId();
+        List<ParticipantSummaryDto> participants = participantMap.values().stream()
+            .sorted(Comparator.comparing(p -> !p.getUserId().equals(scannerId)))
+            .collect(Collectors.toList());
+
         BigDecimal total = receipt.getTotalAmount() != null ? receipt.getTotalAmount() : BigDecimal.ZERO;
-        BigDecimal unassigned = total.subtract(assignedTotal).max(BigDecimal.ZERO);
 
         return new ReceiptSummaryDto(
             receipt.getId(),
             receipt.getTitle(),
             total,
             receipt.getCurrency(),
-            assignedTotal.setScale(2, RoundingMode.HALF_UP),
-            unassigned.setScale(2, RoundingMode.HALF_UP),
-            new ArrayList<>(participantMap.values())
+            participants
         );
+    }
+
+    @Transactional
+    public void markPaid(UUID receiptId, UUID currentUserId, UUID payerId) {
+        Receipt receipt = findReceipt(receiptId);
+        assertIsScanner(receipt, currentUserId);
+        if (!paymentRepository.existsByReceiptIdAndPayerId(receiptId, payerId)) {
+            User payer = findUser(payerId);
+            paymentRepository.save(Payment.builder().receipt(receipt).payer(payer).build());
+        }
+    }
+
+    @Transactional
+    public void markUnpaid(UUID receiptId, UUID currentUserId, UUID payerId) {
+        Receipt receipt = findReceipt(receiptId);
+        assertIsScanner(receipt, currentUserId);
+        paymentRepository.deleteByReceiptIdAndPayerId(receiptId, payerId);
+    }
+
+    @Transactional
+    public ReceiptDto finalizeReceipt(UUID receiptId, UUID currentUserId) {
+        Receipt receipt = findReceipt(receiptId);
+        assertIsScanner(receipt, currentUserId);
+        boolean allAssigned = receipt.getItems().stream()
+            .allMatch(item -> item.getAssignments() != null && !item.getAssignments().isEmpty());
+        if (!allAssigned) {
+            throw new BadRequestException("All items must be assigned before finalizing");
+        }
+        receipt.setFinalized(true);
+        return toDto(receiptRepository.save(receipt));
     }
 
     @Transactional
@@ -266,6 +302,12 @@ public class ReceiptService {
         throw new BadRequestException("You do not have access to this receipt");
     }
 
+    private void assertIsScanner(Receipt receipt, UUID userId) {
+        if (!receipt.getScannedBy().getId().equals(userId)) {
+            throw new BadRequestException("Only the receipt owner can mark payments");
+        }
+    }
+
     // ---- DTO mapping ----
 
     private ReceiptDto toDto(Receipt receipt) {
@@ -277,11 +319,13 @@ public class ReceiptService {
             receipt.getTitle(),
             receipt.getScannedBy().getId(),
             receipt.getScannedBy().getName(),
+            receipt.getScannedBy().getRevolutTag(),
             receipt.getGroup() != null ? receipt.getGroup().getId() : null,
             receipt.getGroup() != null ? receipt.getGroup().getName() : null,
             receipt.getTotalAmount(),
             receipt.getCurrency(),
             receipt.getStatus(),
+            receipt.isFinalized(),
             receipt.getScannedAt(),
             itemDtos
         );

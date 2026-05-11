@@ -18,11 +18,13 @@ public class ReceiptDto {
     private String title;
     private UUID scannedById;
     private String scannedByName;
+    private String scannedByRevolutTag;
     private UUID groupId;
     private String groupName;
     private BigDecimal totalAmount;
     private String currency;
     private ReceiptStatus status;
+    private boolean finalized;
     private LocalDateTime scannedAt;
     private List<ReceiptItemDto> items;
 }

@@ -26,7 +26,7 @@ export default function GroupDetailScreen() {
   const [group, setGroup] = useState<GroupDto | null>(null);
   const [receipts, setReceipts] = useState<ReceiptDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'members' | 'receipts'>('members');
+  const [tab, setTab] = useState<'members' | 'receipts'>('receipts');
   const [addModal, setAddModal] = useState(false);
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
@@ -139,11 +139,11 @@ export default function GroupDetailScreen() {
       </View>
 
       <View style={styles.tabBar}>
-        <TouchableOpacity style={[styles.tab, tab === 'members' && styles.tabActive]} onPress={() => setTab('members')}>
-          <Text style={[styles.tabText, tab === 'members' && styles.tabTextActive]}>Members</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, tab === 'receipts' && styles.tabActive]} onPress={() => setTab('receipts')}>
           <Text style={[styles.tabText, tab === 'receipts' && styles.tabTextActive]}>Receipts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, tab === 'members' && styles.tabActive]} onPress={() => setTab('members')}>
+          <Text style={[styles.tabText, tab === 'members' && styles.tabTextActive]}>Members</Text>
         </TouchableOpacity>
       </View>
 

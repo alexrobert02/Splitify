@@ -49,6 +49,10 @@ public class Receipt {
     @Column(nullable = false)
     private ReceiptStatus status;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean finalized = false;
+
     @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")
     @Builder.Default

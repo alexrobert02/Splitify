@@ -17,6 +17,7 @@ public class ParticipantSummaryDto {
     private String email;
     private BigDecimal totalOwed;
     private List<ItemContributionDto> itemBreakdown;
+    private boolean paid;
 
     @Data
     @NoArgsConstructor

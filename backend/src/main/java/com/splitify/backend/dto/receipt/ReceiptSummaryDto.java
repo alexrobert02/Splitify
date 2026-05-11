@@ -16,7 +16,5 @@ public class ReceiptSummaryDto {
     private String title;
     private BigDecimal totalAmount;
     private String currency;
-    private BigDecimal assignedAmount;
-    private BigDecimal unassignedAmount;
     private List<ParticipantSummaryDto> participants;
 }

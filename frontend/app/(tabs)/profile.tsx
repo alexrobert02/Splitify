@@ -20,13 +20,17 @@ export default function ProfileScreen() {
   const { user, logout, refreshUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.name ?? '');
+  const [revolutTag, setRevolutTag] = useState(user?.revolutTag ?? '');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      await api.users.update(name.trim());
+      await api.users.update({
+        name: name.trim(),
+        revolutTag: revolutTag.trim() || undefined,
+      });
       await refreshUser();
       setEditing(false);
     } catch (e: any) {
@@ -82,8 +86,18 @@ export default function ProfileScreen() {
               placeholder="Your name"
               placeholderTextColor={Colors.textMuted}
             />
+            <Text style={styles.label}>Revolut username</Text>
+            <TextInput
+              style={styles.input}
+              value={revolutTag}
+              onChangeText={setRevolutTag}
+              placeholder="e.g. john-doe"
+              placeholderTextColor={Colors.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
             <View style={styles.editActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setEditing(false); setName(user?.name ?? ''); }}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setEditing(false); setName(user?.name ?? ''); setRevolutTag(user?.revolutTag ?? ''); }}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -121,6 +135,21 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => setEditing(true)}>
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIcon, { backgroundColor: '#EDE9FE' }]}>
+                <Ionicons name="logo-usd" size={18} color="#7C3AED" />
+              </View>
+              <View>
+                <Text style={styles.menuText}>Revolut</Text>
+                <Text style={styles.menuSub}>
+                  {user?.revolutTag ? `@${user.revolutTag}` : 'Not set — tap to add'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>

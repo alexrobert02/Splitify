@@ -35,6 +35,9 @@ public class UserService {
         if (StringUtils.hasText(request.getPassword())) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
+        if (request.getRevolutTag() != null) {
+            user.setRevolutTag(request.getRevolutTag().isBlank() ? null : request.getRevolutTag().trim());
+        }
 
         return toDto(userRepository.save(user));
     }
@@ -45,6 +48,6 @@ public class UserService {
     }
 
     public static UserDto toDto(User user) {
-        return new UserDto(user.getId(), user.getEmail(), user.getName(), user.getCreatedAt());
+        return new UserDto(user.getId(), user.getEmail(), user.getName(), user.getCreatedAt(), user.getRevolutTag());
     }
 }

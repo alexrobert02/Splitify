@@ -11,4 +11,7 @@ public class UpdateUserRequest {
 
     @Size(min = 6, max = 100)
     private String password;
+
+    @Size(max = 100)
+    private String revolutTag;
 }
