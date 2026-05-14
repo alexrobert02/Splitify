@@ -49,6 +49,9 @@ public class Receipt {
     @Column(nullable = false)
     private ReceiptStatus status;
 
+    @Enumerated(EnumType.STRING)
+    private ReceiptCategory category;
+
     @Column(nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
     private boolean finalized = false;

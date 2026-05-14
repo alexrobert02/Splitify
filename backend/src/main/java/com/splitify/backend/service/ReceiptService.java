@@ -224,7 +224,14 @@ public class ReceiptService {
             throw new BadRequestException("All items must be assigned before finalizing");
         }
         receipt.setFinalized(true);
-        return toDto(receiptRepository.save(receipt));
+        Receipt saved = receiptRepository.save(receipt);
+
+        // Scanner paid upfront, so auto-mark them as paid
+        if (!paymentRepository.existsByReceiptIdAndPayerId(receiptId, currentUserId)) {
+            paymentRepository.save(Payment.builder().receipt(saved).payer(saved.getScannedBy()).build());
+        }
+
+        return toDto(saved);
     }
 
     @Transactional
@@ -239,6 +246,16 @@ public class ReceiptService {
     private void populateFromOcr(Receipt receipt, OcrService.OcrResult result) {
         receipt.setCurrency(result.getCurrency());
         receipt.setTotalAmount(result.getTotal());
+
+        if (result.getCategory() != null) {
+            try {
+                receipt.setCategory(ReceiptCategory.valueOf(result.getCategory().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                receipt.setCategory(ReceiptCategory.OTHER);
+            }
+        } else {
+            receipt.setCategory(ReceiptCategory.OTHER);
+        }
 
         if (result.getItems() != null) {
             List<ReceiptItem> items = new ArrayList<>();
@@ -325,6 +342,7 @@ public class ReceiptService {
             receipt.getTotalAmount(),
             receipt.getCurrency(),
             receipt.getStatus(),
+            receipt.getCategory(),
             receipt.isFinalized(),
             receipt.getScannedAt(),
             itemDtos

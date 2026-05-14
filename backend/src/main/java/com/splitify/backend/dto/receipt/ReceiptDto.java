@@ -1,5 +1,6 @@
 package com.splitify.backend.dto.receipt;
 
+import com.splitify.backend.entity.ReceiptCategory;
 import com.splitify.backend.entity.ReceiptStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,6 +25,7 @@ public class ReceiptDto {
     private BigDecimal totalAmount;
     private String currency;
     private ReceiptStatus status;
+    private ReceiptCategory category;
     private boolean finalized;
     private LocalDateTime scannedAt;
     private List<ReceiptItemDto> items;

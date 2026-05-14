@@ -36,6 +36,7 @@ public class OcrService {
         {
           "currency": "RON",
           "total": 0.00,
+          "category": "OTHER",
           "items": [
             {
               "name": "Product name as printed",
@@ -48,6 +49,7 @@ public class OcrService {
         Rules:
         - currency: 3-letter ISO code if visible, otherwise "RON"
         - total: the grand total from the receipt; 0 if not visible
+        - category: classify the overall receipt into exactly one of: GROCERIES, DINING, TRANSPORT, ENTERTAINMENT, SHOPPING, UTILITIES, HEALTH, OTHER
         - quantity: numeric value (default 1 if not shown)
         - unit_price: price per unit; equal to total_price if quantity is 1
         - total_price: line total for that item
@@ -153,6 +155,7 @@ public class OcrService {
     public static class OcrResult {
         private String currency;
         private BigDecimal total;
+        private String category;
         private List<OcrItem> items;
 
         public static OcrResult empty() {

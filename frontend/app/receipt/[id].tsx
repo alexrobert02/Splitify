@@ -26,7 +26,19 @@ import type {
   GroupMemberDto,
   SplitType,
   AssigneeEntry,
+  ReceiptCategory,
 } from '@/types';
+
+const CATEGORY_CONFIG: Record<ReceiptCategory, { icon: string; color: string; label: string }> = {
+  GROCERIES:     { icon: 'basket-outline',              color: '#10B981', label: 'Groceries' },
+  DINING:        { icon: 'restaurant-outline',          color: '#F97316', label: 'Dining' },
+  TRANSPORT:     { icon: 'car-outline',                 color: '#3B82F6', label: 'Transport' },
+  ENTERTAINMENT: { icon: 'film-outline',                color: '#A855F7', label: 'Entertainment' },
+  SHOPPING:      { icon: 'bag-handle-outline',          color: '#EC4899', label: 'Shopping' },
+  UTILITIES:     { icon: 'flash-outline',               color: '#F59E0B', label: 'Utilities' },
+  HEALTH:        { icon: 'medkit-outline',              color: '#EF4444', label: 'Health' },
+  OTHER:         { icon: 'ellipsis-horizontal-outline', color: '#6B7280', label: 'Other' },
+};
 
 // ─── Assign Item Modal ────────────────────────────────────────────────────────
 function AssignModal({
@@ -415,6 +427,18 @@ export default function ReceiptDetailScreen() {
             <Text style={[styles.statusText, { color: statusColor }]}>{receipt.status}</Text>
           </View>
         </View>
+        {(() => {
+          const cfg = CATEGORY_CONFIG[receipt.category];
+          return (
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Category</Text>
+              <View style={[styles.categoryBadge, { backgroundColor: cfg.color + '18' }]}>
+                <Ionicons name={cfg.icon as any} size={13} color={cfg.color} />
+                <Text style={[styles.categoryText, { color: cfg.color }]}>{cfg.label}</Text>
+              </View>
+            </View>
+          );
+        })()}
       </View>
 
       {receipt.finalized ? (
@@ -533,6 +557,8 @@ const styles = StyleSheet.create({
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontSize: 12, fontWeight: '700' },
+  categoryBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  categoryText: { fontSize: 12, fontWeight: '700' },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
