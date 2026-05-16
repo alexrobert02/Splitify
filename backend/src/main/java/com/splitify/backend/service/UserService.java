@@ -1,5 +1,6 @@
 package com.splitify.backend.service;
 
+import com.splitify.backend.dto.user.UpdatePushTokenRequest;
 import com.splitify.backend.dto.user.UpdateUserRequest;
 import com.splitify.backend.dto.user.UserDto;
 import com.splitify.backend.entity.User;
@@ -40,6 +41,13 @@ public class UserService {
         }
 
         return toDto(userRepository.save(user));
+    }
+
+    @Transactional
+    public void updatePushToken(UUID userId, UpdatePushTokenRequest request) {
+        User user = findUser(userId);
+        user.setPushToken(request.getPushToken());
+        userRepository.save(user);
     }
 
     private User findUser(UUID id) {

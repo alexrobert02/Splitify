@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { storage } from '@/lib/storage';
 import type { UserDto } from '@/types';
+import { usePushNotifications } from '@/lib/usePushNotifications';
 
 interface AuthContextType {
   user: UserDto | null;
@@ -19,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserDto | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { registerToken } = usePushNotifications();
 
   useEffect(() => {
     (async () => {
@@ -44,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await storage.setUser(userObj);
     setToken(res.token);
     setUser(userObj);
+    registerToken();
   };
 
   const register = async (email: string, name: string, password: string) => {
@@ -53,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await storage.setUser(userObj);
     setToken(res.token);
     setUser(userObj);
+    registerToken();
   };
 
   const logout = async () => {

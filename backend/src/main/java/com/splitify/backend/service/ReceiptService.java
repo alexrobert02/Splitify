@@ -29,6 +29,7 @@ public class ReceiptService {
     private final PaymentRepository paymentRepository;
     private final OcrService ocrService;
     private final SplitCalculationService splitCalculationService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ReceiptDto scanReceipt(UUID currentUserId, MultipartFile image, String title, UUID groupId) {
@@ -230,6 +231,20 @@ public class ReceiptService {
         if (!paymentRepository.existsByReceiptIdAndPayerId(receiptId, currentUserId)) {
             paymentRepository.save(Payment.builder().receipt(saved).payer(saved.getScannedBy()).build());
         }
+
+        // Notify each participant (except scanner) that payment is requested
+        saved.getItems().stream()
+            .flatMap(item -> item.getAssignments().stream())
+            .map(a -> a.getUser())
+            .filter(u -> !u.getId().equals(currentUserId))
+            .distinct()
+            .forEach(participant -> notificationService.sendNotification(
+                participant,
+                NotificationType.PAYMENT_REQUESTED,
+                "Payment requested",
+                saved.getScannedBy().getName() + " requests payment for \"" + saved.getTitle() + "\"",
+                saved.getId().toString()
+            ));
 
         return toDto(saved);
     }

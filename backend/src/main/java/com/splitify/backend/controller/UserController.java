@@ -1,5 +1,6 @@
 package com.splitify.backend.controller;
 
+import com.splitify.backend.dto.user.UpdatePushTokenRequest;
 import com.splitify.backend.dto.user.UpdateUserRequest;
 import com.splitify.backend.dto.user.UserDto;
 import com.splitify.backend.service.UserService;
@@ -28,6 +29,13 @@ public class UserController {
     public ResponseEntity<UserDto> updateProfile(@AuthenticationPrincipal UserDetails userDetails,
                                                   @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.updateProfile(currentUserId(userDetails), request));
+    }
+
+    @PutMapping("/me/push-token")
+    public ResponseEntity<Void> updatePushToken(@AuthenticationPrincipal UserDetails userDetails,
+                                                 @RequestBody UpdatePushTokenRequest request) {
+        userService.updatePushToken(currentUserId(userDetails), request);
+        return ResponseEntity.noContent().build();
     }
 
     private UUID currentUserId(UserDetails userDetails) {

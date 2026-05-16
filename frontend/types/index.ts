@@ -98,3 +98,15 @@ export interface AssigneeEntry {
   splitType: SplitType;
   splitValue?: number;
 }
+
+export type NotificationType = 'GROUP_ADDED' | 'PAYMENT_REQUESTED' | 'PAYMENT_RECEIVED';
+
+export interface NotificationDto {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  relatedEntityId: string | null;
+  read: boolean;
+  createdAt: string;
+}

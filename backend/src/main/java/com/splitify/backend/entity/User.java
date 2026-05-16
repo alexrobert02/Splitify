@@ -32,6 +32,9 @@ public class User {
     @Column(name = "revolut_tag")
     private String revolutTag;
 
+    @Column(name = "push_token")
+    private String pushToken;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

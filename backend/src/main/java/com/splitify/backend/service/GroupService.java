@@ -3,6 +3,7 @@ package com.splitify.backend.service;
 import com.splitify.backend.dto.group.*;
 import com.splitify.backend.entity.Group;
 import com.splitify.backend.entity.GroupMember;
+import com.splitify.backend.entity.NotificationType;
 import com.splitify.backend.entity.User;
 import com.splitify.backend.exception.BadRequestException;
 import com.splitify.backend.exception.ResourceNotFoundException;
@@ -23,6 +24,7 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public GroupDto createGroup(UUID currentUserId, CreateGroupRequest request) {
@@ -72,6 +74,15 @@ public class GroupService {
         }
 
         groupMemberRepository.save(GroupMember.builder().group(group).user(newMember).build());
+
+        User adder = findUser(currentUserId);
+        notificationService.sendNotification(
+            newMember,
+            NotificationType.GROUP_ADDED,
+            "Added to group",
+            adder.getName() + " added you to \"" + group.getName() + "\"",
+            groupId.toString()
+        );
 
         List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
         return toDto(group, members);

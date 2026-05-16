@@ -7,6 +7,7 @@ import type {
   ReceiptItemDto,
   ReceiptSummaryDto,
   AssigneeEntry,
+  NotificationDto,
 } from '@/types';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8080';
@@ -51,6 +52,18 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
+    updatePushToken: (pushToken: string) =>
+      request<void>('/api/users/me/push-token', {
+        method: 'PUT',
+        body: JSON.stringify({ pushToken }),
+      }),
+  },
+
+  notifications: {
+    list: () => request<NotificationDto[]>('/api/notifications'),
+    unreadCount: () => request<number>('/api/notifications/unread-count'),
+    markRead: (id: string) => request<void>(`/api/notifications/${id}/read`, { method: 'PUT' }),
+    markAllRead: () => request<void>('/api/notifications/read-all', { method: 'PUT' }),
   },
 
   groups: {
