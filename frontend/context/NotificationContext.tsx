@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { api } from '@/lib/api';
 import type { NotificationDto } from '@/types';
 import { useAuth } from './AuthContext';
@@ -18,6 +20,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [loading, setLoading] = useState(false);
+  const foregroundListener = useRef<Notifications.EventSubscription | null>(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -51,7 +54,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30_000);
-    return () => clearInterval(interval);
+    if (Platform.OS !== 'web') {
+      foregroundListener.current = Notifications.addNotificationReceivedListener(() => {
+        fetchNotifications();
+      });
+    }
+    return () => {
+      clearInterval(interval);
+      foregroundListener.current?.remove();
+    };
   }, [token, fetchNotifications]);
 
   return (

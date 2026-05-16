@@ -40,19 +40,22 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         if (recipient.getPushToken() != null && !recipient.getPushToken().isBlank()) {
-            sendExpoPushNotification(recipient.getPushToken(), title, body);
+            sendExpoPushNotification(recipient.getPushToken(), title, body, type, relatedEntityId);
         }
     }
 
     // Expo Push Notification Service — uses Firebase Cloud Messaging internally for Android
     // To switch to direct FCM: replace this with Firebase Admin SDK and store raw device tokens
-    private void sendExpoPushNotification(String token, String title, String body) {
+    private void sendExpoPushNotification(String token, String title, String body, NotificationType type, String relatedEntityId) {
         try {
             String safeTitle = title.replace("\\", "\\\\").replace("\"", "\\\"");
             String safeBody = body.replace("\\", "\\\\").replace("\"", "\\\"");
+            String dataField = (relatedEntityId != null)
+                ? String.format(",\"data\":{\"type\":\"%s\",\"relatedEntityId\":\"%s\"}", type.name(), relatedEntityId)
+                : "";
             String payload = String.format(
-                "{\"to\":\"%s\",\"title\":\"%s\",\"body\":\"%s\",\"sound\":\"default\",\"channelId\":\"default\"}",
-                token, safeTitle, safeBody
+                "{\"to\":\"%s\",\"title\":\"%s\",\"body\":\"%s\",\"sound\":\"default\",\"channelId\":\"default\"%s}",
+                token, safeTitle, safeBody, dataField
             );
 
             HttpRequest request = HttpRequest.newBuilder()

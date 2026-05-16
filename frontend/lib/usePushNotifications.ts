@@ -2,17 +2,20 @@ import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 import { api } from './api';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 async function registerForPushNotificationsAsync(): Promise<string | null> {
   if (Platform.OS === 'android') {
@@ -43,23 +46,41 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
     Constants.expoConfig?.extra?.eas?.projectId ??
     Constants.easConfig?.projectId;
 
+  console.log('[Push] projectId:', projectId);
+
   try {
     const tokenData = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined
     );
+    console.log('[Push] Expo token:', tokenData.data);
     return tokenData.data;
-  } catch {
-    // Fallback to device push token (raw FCM token) for development builds
-    const deviceToken = await Notifications.getDevicePushTokenAsync();
-    return deviceToken.data;
+  } catch (e) {
+    console.warn('[Push] getExpoPushTokenAsync failed:', e);
+    try {
+      const deviceToken = await Notifications.getDevicePushTokenAsync();
+      console.log('[Push] Device token (raw FCM):', deviceToken.data);
+      return deviceToken.data;
+    } catch (e2) {
+      console.warn('[Push] getDevicePushTokenAsync failed:', e2);
+      return null;
+    }
+  }
+}
+
+function navigateFromNotification(data: Record<string, string> | undefined) {
+  if (!data?.relatedEntityId) return;
+  if (data.type === 'GROUP_ADDED') {
+    router.push(`/group/${data.relatedEntityId}` as any);
+  } else if (data.type === 'PAYMENT_REQUESTED' || data.type === 'PAYMENT_RECEIVED') {
+    router.push(`/receipt/${data.relatedEntityId}` as any);
   }
 }
 
 export function usePushNotifications() {
-  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
   async function registerToken() {
+    if (Platform.OS === 'web') return;
     try {
       const token = await registerForPushNotificationsAsync();
       if (token) {
@@ -71,16 +92,13 @@ export function usePushNotifications() {
   }
 
   useEffect(() => {
-    notificationListener.current = Notifications.addNotificationReceivedListener(() => {
-      // foreground notification received — context will refresh via polling
-    });
-
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
-      // user tapped notification — navigate if needed
+    if (Platform.OS === 'web') return;
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data as Record<string, string> | undefined;
+      navigateFromNotification(data);
     });
 
     return () => {
-      notificationListener.current?.remove();
       responseListener.current?.remove();
     };
   }, []);
