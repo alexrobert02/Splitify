@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { router } from 'expo-router';
+import { api, setUnauthorizedHandler } from '@/lib/api';
 import { storage } from '@/lib/storage';
 import type { UserDto } from '@/types';
 import { usePushNotifications } from '@/lib/usePushNotifications';
@@ -23,6 +24,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { registerToken } = usePushNotifications();
 
   useEffect(() => {
+    setUnauthorizedHandler(async () => {
+      await storage.clear();
+      setToken(null);
+      setUser(null);
+      router.replace('/(auth)/login' as any);
+    });
+  }, []);
+
+  useEffect(() => {
     (async () => {
       try {
         const savedToken = await storage.getToken();
@@ -30,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (savedToken && savedUser) {
           setToken(savedToken);
           setUser(savedUser);
-          registerToken();
+          await registerToken();
         }
       } catch {
         // ignore
@@ -38,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [registerToken]);
 
   const login = async (email: string, password: string) => {
     const res = await api.auth.login(email, password);
@@ -47,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await storage.setUser(userObj);
     setToken(res.token);
     setUser(userObj);
-    registerToken();
+    await registerToken();
   };
 
   const register = async (email: string, name: string, password: string) => {
@@ -57,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await storage.setUser(userObj);
     setToken(res.token);
     setUser(userObj);
-    registerToken();
+    await registerToken();
   };
 
   const logout = async () => {

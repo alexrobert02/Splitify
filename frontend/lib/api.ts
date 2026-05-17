@@ -12,6 +12,11 @@ import type {
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8080';
 
+let unauthorizedHandler: (() => void) | null = null;
+export function setUnauthorizedHandler(fn: () => void) {
+  unauthorizedHandler = fn;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await storage.getToken();
   const headers: Record<string, string> = {
@@ -21,6 +26,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   };
 
   const response = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+
+  if (response.status === 401) {
+    unauthorizedHandler?.();
+    throw new Error('Session expired');
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));

@@ -44,8 +44,6 @@ public class NotificationService {
         }
     }
 
-    // Expo Push Notification Service — uses Firebase Cloud Messaging internally for Android
-    // To switch to direct FCM: replace this with Firebase Admin SDK and store raw device tokens
     private void sendExpoPushNotification(String token, String title, String body, NotificationType type, String relatedEntityId, UUID notificationId) {
         try {
             String safeTitle = title.replace("\\", "\\\\").replace("\"", "\\\"");

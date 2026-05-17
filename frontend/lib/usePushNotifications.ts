@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -57,7 +58,7 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
 }
 
 export function usePushNotifications() {
-  async function registerToken() {
+  const registerToken = useCallback(async () => {
     if (Platform.OS === 'web') return;
     try {
       const token = await registerForPushNotificationsAsync();
@@ -67,7 +68,7 @@ export function usePushNotifications() {
     } catch {
       // registration failure is non-fatal
     }
-  }
+  }, []);
 
   return { registerToken };
 }
