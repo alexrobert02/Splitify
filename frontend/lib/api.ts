@@ -67,6 +67,11 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ pushToken }),
       }),
+    clearPushToken: () =>
+      request<void>('/api/users/me/push-token', {
+        method: 'PUT',
+        body: JSON.stringify({ pushToken: null }),
+      }),
   },
 
   notifications: {

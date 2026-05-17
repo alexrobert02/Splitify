@@ -69,5 +69,14 @@ export function usePushNotifications() {
     }
   }, []);
 
-  return { registerToken };
+  const unregisterToken = useCallback(async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      await api.users.clearPushToken();
+    } catch {
+      // non-fatal
+    }
+  }, []);
+
+  return { registerToken, unregisterToken };
 }

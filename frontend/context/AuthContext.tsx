@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserDto | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { registerToken } = usePushNotifications();
+  const { registerToken, unregisterToken } = usePushNotifications();
 
   useEffect(() => {
     setUnauthorizedHandler(async () => {
@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    await unregisterToken();
     await storage.clear();
     setToken(null);
     setUser(null);

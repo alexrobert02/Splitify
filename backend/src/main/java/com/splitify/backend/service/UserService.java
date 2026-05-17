@@ -45,8 +45,12 @@ public class UserService {
 
     @Transactional
     public void updatePushToken(UUID userId, UpdatePushTokenRequest request) {
+        String token = request.getPushToken();
+        if (token != null && !token.isBlank()) {
+            userRepository.clearPushTokenFromOtherUsers(token, userId);
+        }
         User user = findUser(userId);
-        user.setPushToken(request.getPushToken());
+        user.setPushToken(token);
         userRepository.save(user);
     }
 
