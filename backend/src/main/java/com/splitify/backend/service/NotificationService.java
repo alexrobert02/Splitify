@@ -40,19 +40,19 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         if (recipient.getPushToken() != null && !recipient.getPushToken().isBlank()) {
-            sendExpoPushNotification(recipient.getPushToken(), title, body, type, relatedEntityId);
+            sendExpoPushNotification(recipient.getPushToken(), title, body, type, relatedEntityId, notification.getId());
         }
     }
 
     // Expo Push Notification Service — uses Firebase Cloud Messaging internally for Android
     // To switch to direct FCM: replace this with Firebase Admin SDK and store raw device tokens
-    private void sendExpoPushNotification(String token, String title, String body, NotificationType type, String relatedEntityId) {
+    private void sendExpoPushNotification(String token, String title, String body, NotificationType type, String relatedEntityId, UUID notificationId) {
         try {
             String safeTitle = title.replace("\\", "\\\\").replace("\"", "\\\"");
             String safeBody = body.replace("\\", "\\\\").replace("\"", "\\\"");
             String dataField = (relatedEntityId != null)
-                ? String.format(",\"data\":{\"type\":\"%s\",\"relatedEntityId\":\"%s\"}", type.name(), relatedEntityId)
-                : "";
+                ? String.format(",\"data\":{\"type\":\"%s\",\"relatedEntityId\":\"%s\",\"notificationId\":\"%s\"}", type.name(), relatedEntityId, notificationId)
+                : String.format(",\"data\":{\"notificationId\":\"%s\"}", notificationId);
             String payload = String.format(
                 "{\"to\":\"%s\",\"title\":\"%s\",\"body\":\"%s\",\"sound\":\"default\",\"channelId\":\"default\"%s}",
                 token, safeTitle, safeBody, dataField
@@ -67,9 +67,7 @@ public class NotificationService {
 
             HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenAccept(resp -> {
-                    if (resp.statusCode() != 200) {
-                        log.warn("Expo push returned status {}: {}", resp.statusCode(), resp.body());
-                    }
+                    log.info("Expo push response status={} body={}", resp.statusCode(), resp.body());
                 })
                 .exceptionally(e -> { log.error("Push notification failed", e); return null; });
         } catch (Exception e) {

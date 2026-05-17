@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import type { NotificationDto } from '@/types';
 import { useAuth } from './AuthContext';
@@ -21,6 +22,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [loading, setLoading] = useState(false);
   const foregroundListener = useRef<Notifications.EventSubscription | null>(null);
+  const tapListener = useRef<Notifications.EventSubscription | null>(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -48,19 +50,40 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+    tapListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data as Record<string, string> | undefined;
+      if (data?.notificationId) {
+        api.notifications.markRead(data.notificationId)
+          .then(() => {
+            setNotifications(prev => prev.map(n => n.id === data.notificationId ? { ...n, read: true } : n));
+          })
+          .catch(() => {});
+      }
+      if (!data?.relatedEntityId) return;
+      if (data.type === 'GROUP_ADDED') {
+        router.push(`/group/${data.relatedEntityId}` as any);
+      } else if (data.type === 'PAYMENT_REQUESTED' || data.type === 'PAYMENT_RECEIVED') {
+        router.push(`/receipt/${data.relatedEntityId}` as any);
+      }
+    });
+    return () => {
+      tapListener.current?.remove();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!token) {
       setNotifications([]);
       return;
     }
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30_000);
     if (Platform.OS !== 'web') {
       foregroundListener.current = Notifications.addNotificationReceivedListener(() => {
         fetchNotifications();
       });
     }
     return () => {
-      clearInterval(interval);
       foregroundListener.current?.remove();
     };
   }, [token, fetchNotifications]);
