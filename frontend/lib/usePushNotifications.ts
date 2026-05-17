@@ -72,7 +72,10 @@ export function usePushNotifications() {
   const unregisterToken = useCallback(async () => {
     if (Platform.OS === 'web') return;
     try {
-      await api.users.clearPushToken();
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        await api.users.clearPushToken(token);
+      }
     } catch {
       // non-fatal
     }

@@ -13,7 +13,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
 
-    @Modifying
-    @Query("UPDATE User u SET u.pushToken = null WHERE u.pushToken = :token AND u.id <> :excludeUserId")
-    void clearPushTokenFromOtherUsers(@Param("token") String token, @Param("excludeUserId") UUID excludeUserId);
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM user_push_tokens WHERE token = :token AND user_id <> :userId", nativeQuery = true)
+    void deleteTokenFromOtherUsers(@Param("token") String token, @Param("userId") UUID userId);
 }

@@ -22,8 +22,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     public UserDto getProfile(UUID userId) {
-        User user = findUser(userId);
-        return toDto(user);
+        return toDto(findUser(userId));
     }
 
     @Transactional
@@ -44,13 +43,24 @@ public class UserService {
     }
 
     @Transactional
-    public void updatePushToken(UUID userId, UpdatePushTokenRequest request) {
+    public void addPushToken(UUID userId, UpdatePushTokenRequest request) {
         String token = request.getPushToken();
-        if (token != null && !token.isBlank()) {
-            userRepository.clearPushTokenFromOtherUsers(token, userId);
-        }
+        if (token == null || token.isBlank()) return;
+
+        userRepository.deleteTokenFromOtherUsers(token, userId);
+
         User user = findUser(userId);
-        user.setPushToken(token);
+        user.getPushTokens().add(token);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void removePushToken(UUID userId, UpdatePushTokenRequest request) {
+        String token = request.getPushToken();
+        if (token == null || token.isBlank()) return;
+
+        User user = findUser(userId);
+        user.getPushTokens().remove(token);
         userRepository.save(user);
     }
 

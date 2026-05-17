@@ -32,9 +32,16 @@ public class UserController {
     }
 
     @PutMapping("/me/push-token")
-    public ResponseEntity<Void> updatePushToken(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<Void> addPushToken(@AuthenticationPrincipal UserDetails userDetails,
+                                              @RequestBody UpdatePushTokenRequest request) {
+        userService.addPushToken(currentUserId(userDetails), request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/me/push-token")
+    public ResponseEntity<Void> removePushToken(@AuthenticationPrincipal UserDetails userDetails,
                                                  @RequestBody UpdatePushTokenRequest request) {
-        userService.updatePushToken(currentUserId(userDetails), request);
+        userService.removePushToken(currentUserId(userDetails), request);
         return ResponseEntity.noContent().build();
     }
 

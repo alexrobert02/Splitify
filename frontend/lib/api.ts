@@ -67,10 +67,10 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ pushToken }),
       }),
-    clearPushToken: () =>
+    clearPushToken: (pushToken: string) =>
       request<void>('/api/users/me/push-token', {
-        method: 'PUT',
-        body: JSON.stringify({ pushToken: null }),
+        method: 'DELETE',
+        body: JSON.stringify({ pushToken }),
       }),
   },
 

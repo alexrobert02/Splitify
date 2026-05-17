@@ -5,6 +5,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -32,8 +34,15 @@ public class User {
     @Column(name = "revolut_tag")
     private String revolutTag;
 
-    @Column(name = "push_token")
-    private String pushToken;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "user_push_tokens",
+        joinColumns = @JoinColumn(name = "user_id"),
+        uniqueConstraints = @UniqueConstraint(columnNames = "token")
+    )
+    @Column(name = "token", nullable = false)
+    @Builder.Default
+    private Set<String> pushTokens = new HashSet<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;

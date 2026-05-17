@@ -39,9 +39,8 @@ public class NotificationService {
             .build();
         notificationRepository.save(notification);
 
-        if (recipient.getPushToken() != null && !recipient.getPushToken().isBlank()) {
-            sendExpoPushNotification(recipient.getPushToken(), title, body, type, relatedEntityId, notification.getId());
-        }
+        recipient.getPushTokens()
+            .forEach(token -> sendExpoPushNotification(token, title, body, type, relatedEntityId, notification.getId()));
     }
 
     private void sendExpoPushNotification(String token, String title, String body, NotificationType type, String relatedEntityId, UUID notificationId) {
