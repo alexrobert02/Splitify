@@ -18,7 +18,7 @@ public class SplitCalculationService {
     public void calculateAndSetAmounts(ReceiptItem item, List<ItemAssignment> assignments) {
         if (assignments.isEmpty()) return;
 
-        SplitType type = assignments.get(0).getSplitType();
+        SplitType type = assignments.getFirst().getSplitType();
 
         switch (type) {
             case EQUAL -> calculateEqual(item, assignments);

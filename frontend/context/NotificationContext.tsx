@@ -77,10 +77,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setNotifications([]);
       return;
     }
-    fetchNotifications();
+    void fetchNotifications();
     if (Platform.OS !== 'web') {
       foregroundListener.current = Notifications.addNotificationReceivedListener(() => {
-        fetchNotifications();
+        void fetchNotifications();
       });
     }
     return () => {

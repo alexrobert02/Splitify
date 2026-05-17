@@ -90,7 +90,7 @@ export default function ReceiptsScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { void load(); }, []));
 
   const handleDelete = async (id: string) => {
     try {
@@ -129,7 +129,7 @@ export default function ReceiptsScreen() {
         data={receipts}
         keyExtractor={r => r.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={Colors.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={64} color={Colors.border} />

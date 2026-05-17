@@ -78,7 +78,7 @@ export default function GroupsScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { void load(); }, []));
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -126,7 +126,7 @@ export default function GroupsScreen() {
         data={groups}
         keyExtractor={g => g.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={Colors.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="people-outline" size={64} color={Colors.border} />

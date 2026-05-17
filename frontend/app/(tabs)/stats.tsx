@@ -179,7 +179,7 @@ export default function StatsScreen() {
 
   useFocusEffect(useCallback(() => {
     setLoading(true);
-    load();
+    void load();
   }, []));
 
   const handlePeriodChange = (p: Period) => {
@@ -233,7 +233,7 @@ export default function StatsScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); load(); }}
+            onRefresh={() => { setRefreshing(true); void load(); }}
             tintColor={Colors.primary}
           />
         }

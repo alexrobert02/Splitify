@@ -63,9 +63,7 @@ public class NotificationService {
                 .build();
 
             HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenAccept(resp -> {
-                    log.info("Expo push response status={} body={}", resp.statusCode(), resp.body());
-                })
+                .thenAccept(resp -> log.info("Expo push response status={} body={}", resp.statusCode(), resp.body()))
                 .exceptionally(e -> { log.error("Push notification failed", e); return null; });
         } catch (Exception e) {
             log.error("Failed to send push notification", e);

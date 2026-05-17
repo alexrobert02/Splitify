@@ -9,8 +9,6 @@ import java.util.UUID;
 
 public interface GroupRepository extends JpaRepository<Group, UUID> {
 
-    List<Group> findByCreatedById(UUID userId);
-
     @Query("SELECT g FROM Group g JOIN g.members u WHERE u.id = :userId")
     List<Group> findGroupsByMemberId(UUID userId);
 }
