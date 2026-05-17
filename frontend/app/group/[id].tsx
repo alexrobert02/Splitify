@@ -10,7 +10,6 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -226,7 +225,7 @@ export default function GroupDetailScreen() {
       )}
 
       <Modal visible={addModal} transparent animationType="slide">
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Add Member</Text>

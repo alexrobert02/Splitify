@@ -10,7 +10,6 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
-  Platform,
   Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -111,7 +110,7 @@ function AssignModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
         <View style={styles.modalSheet}>
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Assign Item</Text>
