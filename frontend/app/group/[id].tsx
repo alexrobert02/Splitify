@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/Colors';
-import type { GroupDto, GroupMemberDto, ReceiptDto } from '@/types';
+import type { GroupDto, UserDto, ReceiptDto } from '@/types';
 
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,9 +67,9 @@ export default function GroupDetailScreen() {
     }
   };
 
-  const handleRemoveMember = (member: GroupMemberDto) => {
+  const handleRemoveMember = (member: UserDto) => {
     if (!id) return;
-    if (member.userId === user?.id) {
+    if (member.id === user?.id) {
       Alert.alert('Cannot remove yourself', 'You cannot remove yourself from the group');
       return;
     }
@@ -80,8 +80,8 @@ export default function GroupDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await api.groups.removeMember(id, member.userId);
-            setGroup(prev => prev ? { ...prev, members: prev.members.filter(m => m.userId !== member.userId) } : prev);
+            await api.groups.removeMember(id, member.id);
+            setGroup(prev => prev ? { ...prev, members: prev.members.filter(m => m.id !== member.id) } : prev);
           } catch (e: any) {
             Alert.alert('Error', e.message);
           }
@@ -150,21 +150,21 @@ export default function GroupDetailScreen() {
       {tab === 'members' ? (
         <ScrollView contentContainerStyle={styles.list}>
           {group.members?.map(m => (
-            <View key={m.userId} style={styles.memberCard}>
+            <View key={m.id} style={styles.memberCard}>
               <View style={styles.memberAvatar}>
                 <Text style={styles.memberAvatarText}>{m.name.slice(0, 2).toUpperCase()}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.memberName}>{m.name}{m.userId === user?.id ? ' (you)' : ''}</Text>
+                <Text style={styles.memberName}>{m.name}{m.id === user?.id ? ' (you)' : ''}</Text>
                 <Text style={styles.memberEmail}>{m.email}</Text>
               </View>
               <View style={styles.memberRight}>
-                <View style={[styles.roleBadge, m.userId === group.createdById && styles.ownerBadge]}>
-                  <Text style={[styles.roleText, m.userId === group.createdById && styles.ownerText]}>
-                    {m.userId === group.createdById ? 'Owner' : 'Member'}
+                <View style={[styles.roleBadge, m.id === group.createdById && styles.ownerBadge]}>
+                  <Text style={[styles.roleText, m.id === group.createdById && styles.ownerText]}>
+                    {m.id === group.createdById ? 'Owner' : 'Member'}
                   </Text>
                 </View>
-                {isOwner && m.userId !== user?.id && (
+                {isOwner && m.id !== user?.id && (
                   <TouchableOpacity onPress={() => handleRemoveMember(m)} hitSlop={8}>
                     <Ionicons name="remove-circle-outline" size={20} color={Colors.error} />
                   </TouchableOpacity>

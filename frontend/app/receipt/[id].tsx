@@ -23,7 +23,7 @@ import type {
   ReceiptDto,
   ReceiptItemDto,
   ReceiptSummaryDto,
-  GroupMemberDto,
+  UserDto,
   SplitType,
   AssigneeEntry,
   ReceiptCategory,
@@ -52,7 +52,7 @@ function AssignModal({
 }: {
   visible: boolean;
   item: ReceiptItemDto | null;
-  members: GroupMemberDto[];
+  members: UserDto[];
   receiptId: string;
   currency: string;
   onClose: () => void;
@@ -105,9 +105,9 @@ function AssignModal({
     }
   };
 
-  const allMembers: GroupMemberDto[] = members.length > 0
+  const allMembers: UserDto[] = members.length > 0
     ? members
-    : user ? [{ userId: user.id, name: user.name, email: user.email, role: 'MEMBER', joinedAt: '' }] : [];
+    : user ? [{ id: user.id, name: user.name, email: user.email }] : [];
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -145,12 +145,12 @@ function AssignModal({
           <Text style={styles.sectionLabel}>Participants</Text>
           <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false}>
             {allMembers.map(m => {
-              const isSelected = selected.has(m.userId);
+              const isSelected = selected.has(m.id);
               return (
                 <TouchableOpacity
-                  key={m.userId}
+                  key={m.id}
                   style={[styles.memberRow, isSelected && styles.memberRowActive]}
-                  onPress={() => toggleMember(m.userId)}
+                  onPress={() => toggleMember(m.id)}
                 >
                   <View style={styles.memberLeft}>
                     <View style={[styles.memberCheck, isSelected && styles.memberCheckActive]}>
@@ -166,8 +166,8 @@ function AssignModal({
                       style={styles.valueInput}
                       placeholder={splitType === 'PERCENTAGE' ? '%' : splitType === 'COUNT' ? 'qty' : 'amt'}
                       placeholderTextColor={Colors.textMuted}
-                      value={customValues[m.userId] ?? ''}
-                      onChangeText={v => setCustomValues(prev => ({ ...prev, [m.userId]: v }))}
+                      value={customValues[m.id] ?? ''}
+                      onChangeText={v => setCustomValues(prev => ({ ...prev, [m.id]: v }))}
                       keyboardType="numeric"
                     />
                   )}
@@ -332,7 +332,7 @@ export default function ReceiptDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const [receipt, setReceipt] = useState<ReceiptDto | null>(null);
-  const [members, setMembers] = useState<GroupMemberDto[]>([]);
+  const [members, setMembers] = useState<UserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [assignTarget, setAssignTarget] = useState<ReceiptItemDto | null>(null);
   const [proceeding, setProceeding] = useState(false);

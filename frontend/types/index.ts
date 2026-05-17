@@ -12,14 +12,6 @@ export interface UserDto {
   revolutTag?: string;
 }
 
-export interface GroupMemberDto {
-  userId: string;
-  name: string;
-  email: string;
-  role: string;
-  joinedAt: string;
-}
-
 export interface GroupDto {
   id: string;
   name: string;
@@ -27,7 +19,7 @@ export interface GroupDto {
   createdById: string;
   createdByName: string;
   createdAt: string;
-  members: GroupMemberDto[];
+  members: UserDto[];
 }
 
 export type SplitType = 'EQUAL' | 'PERCENTAGE' | 'FIXED' | 'COUNT';

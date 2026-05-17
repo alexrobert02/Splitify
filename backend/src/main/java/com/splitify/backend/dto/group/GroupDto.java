@@ -1,5 +1,6 @@
 package com.splitify.backend.dto.group;
 
+import com.splitify.backend.dto.user.UserDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,5 +19,5 @@ public class GroupDto {
     private UUID createdById;
     private String createdByName;
     private LocalDateTime createdAt;
-    private List<GroupMemberDto> members;
+    private List<UserDto> members;
 }

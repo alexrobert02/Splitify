@@ -1,13 +1,12 @@
 package com.splitify.backend.service;
 
 import com.splitify.backend.dto.group.*;
+import com.splitify.backend.dto.user.UserDto;
 import com.splitify.backend.entity.Group;
-import com.splitify.backend.entity.GroupMember;
 import com.splitify.backend.entity.NotificationType;
 import com.splitify.backend.entity.User;
 import com.splitify.backend.exception.BadRequestException;
 import com.splitify.backend.exception.ResourceNotFoundException;
-import com.splitify.backend.repository.GroupMemberRepository;
 import com.splitify.backend.repository.GroupRepository;
 import com.splitify.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +21,6 @@ import java.util.UUID;
 public class GroupService {
 
     private final GroupRepository groupRepository;
-    private final GroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -35,45 +33,37 @@ public class GroupService {
             .description(request.getDescription())
             .createdBy(creator)
             .build();
+        group.getMembers().add(creator);
         groupRepository.save(group);
 
-        GroupMember creatorMember = GroupMember.builder()
-            .group(group)
-            .user(creator)
-            .build();
-        groupMemberRepository.save(creatorMember);
-
-        return toDto(group, List.of(creatorMember));
+        return toDto(group);
     }
 
     public List<GroupDto> getMyGroups(UUID currentUserId) {
-        List<Group> groups = groupRepository.findGroupsByMemberId(currentUserId);
-        return groups.stream().map(g -> {
-            List<GroupMember> members = groupMemberRepository.findByGroupId(g.getId());
-            return toDto(g, members);
-        }).toList();
+        return groupRepository.findGroupsByMemberId(currentUserId)
+            .stream().map(this::toDto).toList();
     }
 
     public GroupDto getGroup(UUID groupId, UUID currentUserId) {
         Group group = findGroup(groupId);
-        assertMember(groupId, currentUserId);
-        List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
-        return toDto(group, members);
+        assertMember(group, currentUserId);
+        return toDto(group);
     }
 
     @Transactional
     public GroupDto addMember(UUID groupId, UUID currentUserId, AddMemberRequest request) {
         Group group = findGroup(groupId);
-        assertMember(groupId, currentUserId);
+        assertMember(group, currentUserId);
 
         User newMember = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + request.getEmail()));
 
-        if (groupMemberRepository.existsByGroupIdAndUserId(groupId, newMember.getId())) {
+        if (group.getMembers().stream().anyMatch(u -> u.getId().equals(newMember.getId()))) {
             throw new BadRequestException("User is already a member of this group");
         }
 
-        groupMemberRepository.save(GroupMember.builder().group(group).user(newMember).build());
+        group.getMembers().add(newMember);
+        groupRepository.save(group);
 
         User adder = findUser(currentUserId);
         notificationService.sendNotification(
@@ -84,20 +74,19 @@ public class GroupService {
             groupId.toString()
         );
 
-        List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
-        return toDto(group, members);
+        return toDto(group);
     }
 
     @Transactional
     public void removeMember(UUID groupId, UUID currentUserId, UUID targetUserId) {
-        findGroup(groupId);
-        assertMember(groupId, currentUserId);
+        Group group = findGroup(groupId);
+        assertMember(group, currentUserId);
 
-        if (!groupMemberRepository.existsByGroupIdAndUserId(groupId, targetUserId)) {
+        boolean removed = group.getMembers().removeIf(u -> u.getId().equals(targetUserId));
+        if (!removed) {
             throw new ResourceNotFoundException("User is not a member of this group");
         }
-
-        groupMemberRepository.deleteByGroupIdAndUserId(groupId, targetUserId);
+        groupRepository.save(group);
     }
 
     @Transactional
@@ -119,20 +108,15 @@ public class GroupService {
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
-    private void assertMember(UUID groupId, UUID userId) {
-        if (!groupMemberRepository.existsByGroupIdAndUserId(groupId, userId)) {
+    private void assertMember(Group group, UUID userId) {
+        if (group.getMembers().stream().noneMatch(u -> u.getId().equals(userId))) {
             throw new BadRequestException("You are not a member of this group");
         }
     }
 
-    private GroupDto toDto(Group group, List<GroupMember> members) {
-        List<GroupMemberDto> memberDtos = members.stream()
-            .map(m -> new GroupMemberDto(
-                m.getUser().getId(),
-                m.getUser().getName(),
-                m.getUser().getEmail(),
-                m.getJoinedAt()
-            ))
+    private GroupDto toDto(Group group) {
+        List<UserDto> memberDtos = group.getMembers().stream()
+            .map(u -> new UserDto(u.getId(), u.getEmail(), u.getName(), null, u.getRevolutTag()))
             .toList();
 
         return new GroupDto(

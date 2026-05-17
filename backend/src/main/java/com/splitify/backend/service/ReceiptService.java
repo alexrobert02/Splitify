@@ -25,7 +25,7 @@ public class ReceiptService {
     private final ReceiptItemRepository receiptItemRepository;
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
-    private final GroupMemberRepository groupMemberRepository;
+    private final GroupService groupService;
     private final PaymentRepository paymentRepository;
     private final OcrService ocrService;
     private final SplitCalculationService splitCalculationService;
@@ -75,6 +75,11 @@ public class ReceiptService {
     }
 
     public List<ReceiptDto> getGroupReceipts(UUID groupId, UUID currentUserId) {
+        Group group = groupRepository.findById(groupId)
+            .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
+        if (group.getMembers().stream().noneMatch(u -> u.getId().equals(currentUserId))) {
+            throw new BadRequestException("You are not a member of this group");
+        }
         return receiptRepository.findByGroupIdOrderByScannedAtDesc(groupId)
             .stream().map(this::toDto).toList();
     }
@@ -235,7 +240,7 @@ public class ReceiptService {
         // Notify each participant (except scanner) that payment is requested
         saved.getItems().stream()
             .flatMap(item -> item.getAssignments().stream())
-            .map(a -> a.getUser())
+            .map(ItemAssignment::getUser)
             .filter(u -> !u.getId().equals(currentUserId))
             .distinct()
             .forEach(participant -> notificationService.sendNotification(
@@ -330,7 +335,7 @@ public class ReceiptService {
     private void assertAccess(Receipt receipt, UUID userId) {
         if (receipt.getScannedBy().getId().equals(userId)) return;
         if (receipt.getGroup() != null &&
-                groupMemberRepository.existsByGroupIdAndUserId(receipt.getGroup().getId(), userId)) return;
+                receipt.getGroup().getMembers().stream().anyMatch(u -> u.getId().equals(userId))) return;
         throw new BadRequestException("You do not have access to this receipt");
     }
 
