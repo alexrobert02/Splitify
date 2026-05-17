@@ -25,7 +25,6 @@ public class ReceiptService {
     private final ReceiptItemRepository receiptItemRepository;
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
-    private final GroupService groupService;
     private final PaymentRepository paymentRepository;
     private final OcrService ocrService;
     private final SplitCalculationService splitCalculationService;
@@ -60,6 +59,9 @@ public class ReceiptService {
             OcrService.OcrResult ocrResult = ocrService.extractFromImage(base64Image, mimeType);
             populateFromOcr(receipt, ocrResult);
             receipt.setStatus(ReceiptStatus.PROCESSED);
+            if (groupId == null) {
+                autoFinalizePersonalReceipt(receipt, user);
+            }
         } catch (Exception e) {
             log.error("OCR failed for receipt {}", receipt.getId(), e);
             receipt.setStatus(ReceiptStatus.FAILED);
@@ -262,6 +264,20 @@ public class ReceiptService {
     }
 
     // ---- helpers ----
+
+    private void autoFinalizePersonalReceipt(Receipt receipt, User user) {
+        for (ReceiptItem item : receipt.getItems()) {
+            ItemAssignment assignment = ItemAssignment.builder()
+                .item(item)
+                .user(user)
+                .splitType(SplitType.EQUAL)
+                .amountOwed(item.getTotalPrice() != null ? item.getTotalPrice() : BigDecimal.ZERO)
+                .build();
+            item.getAssignments().add(assignment);
+        }
+        receipt.setFinalized(true);
+        paymentRepository.save(Payment.builder().receipt(receipt).payer(user).build());
+    }
 
     private void populateFromOcr(Receipt receipt, OcrService.OcrResult result) {
         receipt.setCurrency(result.getCurrency());

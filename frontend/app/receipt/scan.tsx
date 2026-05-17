@@ -57,9 +57,12 @@ export default function ScanScreen() {
     setUploading(true);
     try {
       const receipt = await api.receipts.scan(imageUri, title.trim() || undefined, groupId);
+      const isPersonal = !groupId;
       Alert.alert(
-        'Receipt uploaded!',
-        `Found ${receipt.items?.length ?? 0} items. OCR is processing your receipt.`,
+        'Receipt scanned!',
+        isPersonal
+          ? `Found ${receipt.items?.length ?? 0} items.`
+          : `Found ${receipt.items?.length ?? 0} items. Assign them to your group members.`,
         [{ text: 'View receipt', onPress: () => router.replace(`/receipt/${receipt.id}` as any) }]
       );
     } catch (e: any) {
