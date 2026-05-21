@@ -8,6 +8,8 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,25 +20,37 @@ import { Colors } from '@/constants/Colors';
 
 export default function ProfileScreen() {
   const { user, logout, refreshUser } = useAuth();
-  const [editing, setEditing] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [editingRevolut, setEditingRevolut] = useState(false);
   const [name, setName] = useState(user?.name ?? '');
   const [revolutTag, setRevolutTag] = useState(user?.revolutTag ?? '');
-  const [saving, setSaving] = useState(false);
+  const [savingName, setSavingName] = useState(false);
+  const [savingRevolut, setSavingRevolut] = useState(false);
 
-  const handleSave = async () => {
+  const handleSaveName = async () => {
     if (!name.trim()) return;
-    setSaving(true);
+    setSavingName(true);
     try {
-      await api.users.update({
-        name: name.trim(),
-        revolutTag: revolutTag.trim() || undefined,
-      });
+      await api.users.update({ name: name.trim() });
       await refreshUser();
-      setEditing(false);
+      setEditingName(false);
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {
-      setSaving(false);
+      setSavingName(false);
+    }
+  };
+
+  const handleSaveRevolut = async () => {
+    setSavingRevolut(true);
+    try {
+      await api.users.update({ revolutTag: revolutTag.trim() || undefined });
+      await refreshUser();
+      setEditingRevolut(false);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSavingRevolut(false);
     }
   };
 
@@ -60,165 +74,171 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.heading}>Profile</Text>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.headerRow}>
+          <Text style={styles.heading}>Profile</Text>
+        </View>
 
         <View style={styles.avatarSection}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
-          {!editing && (
-            <>
-              <Text style={styles.userName}>{user?.name}</Text>
-              <Text style={styles.userEmail}>{user?.email}</Text>
-            </>
-          )}
+          <Text style={styles.userName}>{user?.name}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
         </View>
-
-        {editing ? (
-          <View style={styles.card}>
-            <Text style={styles.label}>Display name</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              autoFocus
-              placeholder="Your name"
-              placeholderTextColor={Colors.textMuted}
-            />
-            <Text style={styles.label}>Revolut username</Text>
-            <TextInput
-              style={styles.input}
-              value={revolutTag}
-              onChangeText={setRevolutTag}
-              placeholder="e.g. john-doe"
-              placeholderTextColor={Colors.textMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <View style={styles.editActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setEditing(false); setName(user?.name ?? ''); setRevolutTag(user?.revolutTag ?? ''); }}>
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveBtn, saving && styles.btnDisabled]}
-                onPress={handleSave}
-                disabled={saving}
-              >
-                {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Save</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : null}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
+          <View style={styles.sectionCard}>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => setEditing(true)}>
-            <View style={styles.menuLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: Colors.primaryLight }]}>
-                <Ionicons name="pencil" size={18} color={Colors.primary} />
-              </View>
-              <Text style={styles.menuText}>Edit name</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-
-          <View style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: '#EEF2FF' }]}>
-                <Ionicons name="mail" size={18} color="#6366F1" />
-              </View>
-              <View>
-                <Text style={styles.menuText}>Email</Text>
-                <Text style={styles.menuSub}>{user?.email}</Text>
+            {/* Email — not editable */}
+            <View style={styles.menuItem}>
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: '#EEF2FF' }]}>
+                  <Ionicons name="mail" size={18} color="#6366F1" />
+                </View>
+                <View>
+                  <Text style={styles.menuText}>Email</Text>
+                  <Text style={styles.menuSub}>{user?.email}</Text>
+                </View>
               </View>
             </View>
+
+            <View style={styles.separator} />
+
+            {/* Display name */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => { setEditingName(true); setEditingRevolut(false); }}
+              disabled={editingName}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: Colors.primaryLight }]}>
+                  <Ionicons name="person" size={18} color={Colors.primary} />
+                </View>
+                <View>
+                  <Text style={styles.menuText}>Display name</Text>
+                  <Text style={styles.menuSub}>{user?.name}</Text>
+                </View>
+              </View>
+              {!editingName && <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />}
+            </TouchableOpacity>
+            {editingName && (
+              <View style={styles.inlineForm}>
+                <TextInput
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                  autoFocus
+                  placeholder="Your name"
+                  placeholderTextColor={Colors.textMuted}
+                />
+                <View style={styles.editActions}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => { setEditingName(false); setName(user?.name ?? ''); }}>
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.saveBtn, savingName && styles.btnDisabled]} onPress={handleSaveName} disabled={savingName}>
+                    {savingName ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Save</Text>}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.separator} />
+
+            {/* Revolut */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => { setEditingRevolut(true); setEditingName(false); }}
+              disabled={editingRevolut}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: '#EDE9FE' }]}>
+                  <Ionicons name="card-outline" size={18} color="#7C3AED" />
+                </View>
+                <View>
+                  <Text style={styles.menuText}>Revolut</Text>
+                  <Text style={styles.menuSub}>
+                    {user?.revolutTag ? `@${user.revolutTag}` : 'Not set — tap to add'}
+                  </Text>
+                </View>
+              </View>
+              {!editingRevolut && <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />}
+            </TouchableOpacity>
+            {editingRevolut && (
+              <View style={styles.inlineForm}>
+                <TextInput
+                  style={styles.input}
+                  value={revolutTag}
+                  onChangeText={setRevolutTag}
+                  autoFocus
+                  placeholder="e.g. john-doe"
+                  placeholderTextColor={Colors.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <View style={styles.editActions}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => { setEditingRevolut(false); setRevolutTag(user?.revolutTag ?? ''); }}>
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.saveBtn, savingRevolut && styles.btnDisabled]} onPress={handleSaveRevolut} disabled={savingRevolut}>
+                    {savingRevolut ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Save</Text>}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
           </View>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => setEditing(true)}>
-            <View style={styles.menuLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: '#EDE9FE' }]}>
-                <Ionicons name="logo-usd" size={18} color="#7C3AED" />
-              </View>
-              <View>
-                <Text style={styles.menuText}>Revolut</Text>
-                <Text style={styles.menuSub}>
-                  {user?.revolutTag ? `@${user.revolutTag}` : 'Not set — tap to add'}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App</Text>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)' as any)}>
-            <View style={styles.menuLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: Colors.successLight }]}>
-                <Ionicons name="receipt" size={18} color={Colors.success} />
-              </View>
-              <Text style={styles.menuText}>My Receipts</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)/groups' as any)}>
-            <View style={styles.menuLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: Colors.warningLight }]}>
-                <Ionicons name="people" size={18} color={Colors.warning} />
-              </View>
-              <Text style={styles.menuText}>My Groups</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={Colors.error} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
+
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
-  container: { padding: 20, paddingBottom: 40 },
-  heading: { fontSize: 24, fontWeight: '800', color: Colors.text, marginBottom: 24 },
-  avatarSection: { alignItems: 'center', marginBottom: 24 },
+  container: { paddingBottom: 48 },
+  headerRow: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
+  heading: { fontSize: 24, fontWeight: '800', color: Colors.text },
+  avatarSection: { alignItems: 'center', paddingTop: 12, paddingBottom: 28, paddingHorizontal: 20 },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+    width: 88,
+    height: 88,
+    borderRadius: 28,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 8,
   },
-  avatarText: { fontSize: 28, fontWeight: '800', color: '#fff' },
-  userName: { fontSize: 20, fontWeight: '700', color: Colors.text },
-  userEmail: { fontSize: 14, color: Colors.textSecondary, marginTop: 4 },
+  avatarText: { fontSize: 30, fontWeight: '800', color: '#fff' },
+  userName: { fontSize: 22, fontWeight: '800', color: Colors.text },
+  userEmail: { fontSize: 14, color: Colors.textSecondary, marginTop: 3 },
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.text, marginBottom: 6 },
+  label: { fontSize: 12, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   input: {
     borderWidth: 1.5,
     borderColor: Colors.border,
@@ -230,6 +250,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     marginBottom: 12,
   },
+  inlineForm: { paddingHorizontal: 16, paddingBottom: 14 },
   editActions: { flexDirection: 'row', gap: 10 },
   cancelBtn: {
     flex: 1,
@@ -249,35 +270,40 @@ const styles = StyleSheet.create({
   },
   saveText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
-  menuItem: {
+  section: { marginHorizontal: 20, marginBottom: 24 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10, marginLeft: 4 },
+  sectionCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  separator: { height: 1, backgroundColor: Colors.divider, marginLeft: 62 },
+  menuItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
   },
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  menuIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  menuIcon: { width: 38, height: 38, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
   menuText: { fontSize: 15, fontWeight: '600', color: Colors.text },
-  menuSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  menuSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: Colors.errorLight,
-    borderRadius: 14,
-    paddingVertical: 14,
-    marginTop: 8,
+    borderRadius: 16,
+    paddingVertical: 15,
+    marginHorizontal: 20,
+    marginBottom: 8,
   },
   logoutText: { fontSize: 15, fontWeight: '700', color: Colors.error },
 });
