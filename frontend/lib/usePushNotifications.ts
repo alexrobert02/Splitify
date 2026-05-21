@@ -7,10 +7,10 @@ import { api } from './api';
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldPlaySound: true,
+      shouldPlaySound: false,
       shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
+      shouldShowBanner: false,
+      shouldShowList: false,
     }),
   });
 }
