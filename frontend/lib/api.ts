@@ -17,19 +17,24 @@ export function setUnauthorizedHandler(fn: () => void) {
   unauthorizedHandler = fn;
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = await storage.getToken();
+async function request<T>(path: string, options: RequestInit & { noAuth?: boolean } = {}): Promise<T> {
+  const { noAuth, ...fetchOptions } = options;
+  const token = noAuth ? null : await storage.getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers as Record<string, string>),
+    ...(fetchOptions.headers as Record<string, string>),
   };
 
-  const response = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const response = await fetch(`${BASE_URL}${path}`, { ...fetchOptions, headers });
 
   if (response.status === 401) {
-    unauthorizedHandler?.();
-    throw new Error('Session expired');
+    if (token) {
+      unauthorizedHandler?.();
+      throw new Error('Session expired');
+    }
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.message || 'Unauthorized');
   }
 
   if (!response.ok) {
@@ -47,11 +52,13 @@ export const api = {
       request<AuthResponse>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
+        noAuth: true,
       }),
     register: (email: string, name: string, password: string) =>
       request<AuthResponse>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, name, password }),
+        noAuth: true,
       }),
   },
 
