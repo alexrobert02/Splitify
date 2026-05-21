@@ -37,12 +37,19 @@ public class ReceiptService {
         String base64Image = encodeToBase64(image);
         String mimeType = resolveMimeType(image);
 
+        OcrService.OcrResult ocrResult;
+        try {
+            ocrResult = ocrService.extractFromImage(base64Image, mimeType);
+        } catch (Exception e) {
+            log.error("OCR failed", e);
+            throw new BadRequestException("Receipt scanning is temporarily unavailable. Please try again later.");
+        }
+
         Receipt receipt = Receipt.builder()
             .title(title)
             .scannedBy(user)
             .imageBase64(base64Image)
             .imageMimeType(mimeType)
-            .status(ReceiptStatus.PROCESSING)
             .currency("RON")
             .totalAmount(BigDecimal.ZERO)
             .build();
@@ -53,21 +60,13 @@ public class ReceiptService {
             receipt.setGroup(group);
         }
 
+        populateFromOcr(receipt, ocrResult);
         receiptRepository.save(receipt);
 
-        try {
-            OcrService.OcrResult ocrResult = ocrService.extractFromImage(base64Image, mimeType);
-            populateFromOcr(receipt, ocrResult);
-            receipt.setStatus(ReceiptStatus.PROCESSED);
-            if (groupId == null) {
-                autoFinalizePersonalReceipt(receipt, user);
-            }
-        } catch (Exception e) {
-            log.error("OCR failed for receipt {}", receipt.getId(), e);
-            receipt.setStatus(ReceiptStatus.FAILED);
+        if (groupId == null) {
+            autoFinalizePersonalReceipt(receipt, user);
         }
 
-        receiptRepository.save(receipt);
         return toDto(receipt);
     }
 
@@ -307,7 +306,6 @@ public class ReceiptService {
                     .build();
                 items.add(item);
             }
-            receiptItemRepository.saveAll(items);
             receipt.setItems(items);
         }
     }
@@ -377,7 +375,6 @@ public class ReceiptService {
             receipt.getGroup() != null ? receipt.getGroup().getName() : null,
             receipt.getTotalAmount(),
             receipt.getCurrency(),
-            receipt.getStatus(),
             receipt.getCategory(),
             receipt.isFinalized(),
             receipt.getScannedAt(),

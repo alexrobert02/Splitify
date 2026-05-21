@@ -46,10 +46,6 @@ public class Receipt {
     private String imageMimeType;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ReceiptStatus status;
-
-    @Enumerated(EnumType.STRING)
     private ReceiptCategory category;
 
     @Column(nullable = false, columnDefinition = "boolean default false")

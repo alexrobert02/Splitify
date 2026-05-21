@@ -24,12 +24,6 @@ function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () 
     year: 'numeric',
   });
 
-  const statusColor = receipt.status === 'PROCESSED'
-    ? Colors.success
-    : receipt.status === 'PROCESSING'
-    ? Colors.warning
-    : Colors.error;
-
   const confirmDelete = () => {
     Alert.alert('Delete receipt', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
@@ -63,7 +57,6 @@ function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () 
         <Text style={styles.amount}>
           {receipt.currency ?? 'RON'} {Number(receipt.totalAmount).toFixed(2)}
         </Text>
-        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
         <TouchableOpacity onPress={confirmDelete} hitSlop={8}>
           <Ionicons name="trash-outline" size={18} color={Colors.error} />
         </TouchableOpacity>
@@ -202,7 +195,6 @@ const styles = StyleSheet.create({
   groupTag: { fontSize: 11, color: Colors.primary, marginTop: 3, fontWeight: '600' },
   cardRight: { alignItems: 'flex-end', gap: 6 },
   amount: { fontSize: 15, fontWeight: '700', color: Colors.text },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textSecondary },
   emptySub: { fontSize: 14, color: Colors.textMuted, textAlign: 'center' },

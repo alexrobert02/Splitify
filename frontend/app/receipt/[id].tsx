@@ -388,7 +388,6 @@ export default function ReceiptDetailScreen() {
   if (!receipt) return null;
 
   const currency = receipt.currency ?? 'RON';
-  const statusColor = receipt.status === 'PROCESSED' ? Colors.success : receipt.status === 'PROCESSING' ? Colors.warning : Colors.error;
   const isScanner = user?.id === receipt.scannedById;
   const allAssigned = (receipt.items?.length ?? 0) > 0 &&
     receipt.items.every(item => (item.assignments?.length ?? 0) > 0);
@@ -419,13 +418,6 @@ export default function ReceiptDetailScreen() {
             <Text style={styles.metaValue}>{receipt.groupName}</Text>
           </View>
         )}
-        <View style={styles.metaRow}>
-          <Text style={styles.metaLabel}>Status</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusText, { color: statusColor }]}>{receipt.status}</Text>
-          </View>
-        </View>
         {(() => {
           const cfg = CATEGORY_CONFIG[receipt.category];
           return (
@@ -553,9 +545,6 @@ const styles = StyleSheet.create({
   metaLabel: { fontSize: 13, color: Colors.textSecondary },
   metaValue: { fontSize: 14, fontWeight: '600', color: Colors.text },
   metaTotal: { fontSize: 22, fontWeight: '800', color: Colors.text },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 12, fontWeight: '700' },
   categoryBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   categoryText: { fontSize: 12, fontWeight: '700' },
   tabBar: {
