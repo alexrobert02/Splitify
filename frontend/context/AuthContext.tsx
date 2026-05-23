@@ -36,14 +36,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const savedToken = await storage.getToken();
-        const savedUser = await storage.getUser();
-        if (savedToken && savedUser) {
+        if (savedToken) {
           setToken(savedToken);
-          setUser(savedUser);
+          const freshUser = await api.users.me();
+          setUser(freshUser);
           await registerToken();
         }
       } catch {
-        // ignore
+        // token invalid or network error — stay logged out
       } finally {
         setIsLoading(false);
       }
@@ -53,9 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     const res = await api.auth.login(email, password);
     await storage.setToken(res.token);
-    const userObj: UserDto = { id: res.userId, email: res.email, name: res.name };
-    await storage.setUser(userObj);
     setToken(res.token);
+    const userObj = await api.users.me();
     setUser(userObj);
     await registerToken();
   };
@@ -63,9 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (email: string, name: string, password: string) => {
     const res = await api.auth.register(email, name, password);
     await storage.setToken(res.token);
-    const userObj: UserDto = { id: res.userId, email: res.email, name: res.name };
-    await storage.setUser(userObj);
     setToken(res.token);
+    const userObj = await api.users.me();
     setUser(userObj);
     await registerToken();
   };
@@ -79,7 +77,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     const fresh = await api.users.me();
-    await storage.setUser(fresh);
     setUser(fresh);
   };
 
