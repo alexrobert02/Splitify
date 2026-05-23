@@ -250,11 +250,8 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
     <ScrollView contentContainerStyle={styles.summaryContent}>
       {summary.participants.map(p => {
         const isCurrentUser = p.userId === user?.id;
-        const canPay =
-          isCurrentUser &&
-          !isScanner &&
-          p.totalOwed > 0 &&
-          !!receipt.scannedByRevolutTag;
+        const owesPayment = isCurrentUser && !isScanner && p.totalOwed > 0;
+        const canPayRevolut = owesPayment && !!receipt.scannedByRevolutTag;
 
         return (
           <View key={p.userId} style={styles.participantCard}>
@@ -305,7 +302,7 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
               </TouchableOpacity>
             )}
             {/* Participant: pay with Revolut button on their own card */}
-            {canPay && !p.paid && (
+            {canPayRevolut && !p.paid && (
               <TouchableOpacity
                 style={styles.revolutBtn}
                 onPress={() => openRevolutPay(
@@ -335,6 +332,7 @@ export default function ReceiptDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [assignTarget, setAssignTarget] = useState<ReceiptItemDto | null>(null);
   const [proceeding, setProceeding] = useState(false);
+  const [assigningAll, setAssigningAll] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -363,6 +361,29 @@ export default function ReceiptDetailScreen() {
       };
     });
   }, []);
+
+  const allMembers: UserDto[] = members.length > 0
+    ? members
+    : user ? [{ id: user.id, name: user.name, email: user.email }] : [];
+
+  const handleAssignAll = async () => {
+    if (!receipt || allMembers.length === 0) return;
+    setAssigningAll(true);
+    try {
+      const assignees: AssigneeEntry[] = allMembers.map(m => ({
+        userId: m.id,
+        splitType: 'EQUAL' as SplitType,
+      }));
+      const updatedItems = await Promise.all(
+        receipt.items.map(item => api.receipts.assignItem(receipt.id, item.id, assignees))
+      );
+      setReceipt(prev => prev ? { ...prev, items: updatedItems } : prev);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setAssigningAll(false);
+    }
+  };
 
   const handleProceed = async () => {
     if (!receipt) return;
@@ -480,6 +501,19 @@ export default function ReceiptDetailScreen() {
           </ScrollView>
           {isScanner && (
             <View style={styles.proceedBar}>
+              <TouchableOpacity
+                style={[styles.assignAllBtn, assigningAll && styles.btnDisabled]}
+                onPress={handleAssignAll}
+                disabled={assigningAll}
+              >
+                {assigningAll
+                  ? <ActivityIndicator color={Colors.primary} size="small" />
+                  : <>
+                      <Ionicons name="people-outline" size={16} color={Colors.primary} />
+                      <Text style={styles.assignAllBtnText}>Assign All to Everyone Equally</Text>
+                    </>
+                }
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.proceedBtn, !allAssigned && styles.proceedBtnDisabled]}
                 onPress={handleProceed}
@@ -677,6 +711,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
+  assignAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  assignAllBtnText: { fontSize: 14, fontWeight: '700', color: Colors.primary },
   proceedBtn: {
     flexDirection: 'row',
     alignItems: 'center',
