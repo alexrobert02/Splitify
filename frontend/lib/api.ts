@@ -28,7 +28,7 @@ async function request<T>(path: string, options: RequestInit & { noAuth?: boolea
 
   const response = await fetch(`${BASE_URL}${path}`, { ...fetchOptions, headers });
 
-  if (response.status === 401) {
+  if (response.status === 401 || response.status === 403) {
     if (token) {
       unauthorizedHandler?.();
       throw new Error('Session expired');
