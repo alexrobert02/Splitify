@@ -12,6 +12,7 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
+  BackHandler,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -72,6 +73,17 @@ function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () 
 
 export default function GroupsTab() {
   const [active, setActive] = useState<ActiveView>({ type: 'picker' });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (active.type === 'picker') return;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        setActive({ type: 'picker' });
+        return true;
+      });
+      return () => sub.remove();
+    }, [active])
+  );
 
   if (active.type === 'solo') return <SoloView onBack={() => setActive({ type: 'picker' })} />;
   if (active.type === 'group') return <GroupView id={active.id} onBack={() => setActive({ type: 'picker' })} />;
