@@ -112,11 +112,22 @@ export const api = {
     listByGroup: (groupId: string) =>
       request<ReceiptDto[]>(`/api/receipts/group/${groupId}`),
     get: (id: string) => request<ReceiptDto>(`/api/receipts/${id}`),
-    createManual: (title?: string, groupId?: string) =>
-      request<ReceiptDto>('/api/receipts/manual', {
+    createReceipt: async (title?: string, groupId?: string): Promise<ReceiptDto> => {
+      const token = await storage.getToken();
+      const formData = new FormData();
+      if (title) formData.append('title', title);
+      if (groupId) formData.append('groupId', groupId);
+      const response = await fetch(`${BASE_URL}/api/receipts/create`, {
         method: 'POST',
-        body: JSON.stringify({ title: title || null, groupId: groupId || null }),
-      }),
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || `HTTP ${response.status}`);
+      }
+      return response.json();
+    },
     scan: async (
       imageUri: string,
       title?: string,
@@ -175,8 +186,6 @@ export const api = {
     summary: (id: string) => request<ReceiptSummaryDto>(`/api/receipts/${id}/summary`),
     markPaid: (receiptId: string, userId: string) =>
       request<void>(`/api/receipts/${receiptId}/participants/${userId}/pay`, { method: 'POST' }),
-    markUnpaid: (receiptId: string, userId: string) =>
-      request<void>(`/api/receipts/${receiptId}/participants/${userId}/pay`, { method: 'DELETE' }),
     delete: (id: string) => request<void>(`/api/receipts/${id}`, { method: 'DELETE' }),
   },
 };

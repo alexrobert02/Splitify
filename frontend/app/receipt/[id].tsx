@@ -224,14 +224,10 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
     );
   };
 
-  const togglePaid = async (participantId: string, currentlyPaid: boolean) => {
+  const handleMarkPaid = async (participantId: string) => {
     setTogglingPaid(true);
     try {
-      if (currentlyPaid) {
-        await api.receipts.markUnpaid(receipt.id, participantId);
-      } else {
-        await api.receipts.markPaid(receipt.id, participantId);
-      }
+      await api.receipts.markPaid(receipt.id, participantId);
       loadSummary();
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -279,24 +275,18 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
                 <Text style={styles.breakdownAmt}>{currency} {Number(item.amountOwed).toFixed(2)}</Text>
               </View>
             ))}
-            {/* Scanner: toggle paid status for other participants (not themselves) */}
-            {isScanner && p.userId !== user?.id && p.totalOwed > 0 && (
+            {/* Scanner: mark paid for other participants */}
+            {isScanner && p.userId !== user?.id && p.totalOwed > 0 && !p.paid && (
               <TouchableOpacity
-                style={[styles.markPaidBtn, p.paid && styles.markUnpaidBtn]}
-                onPress={() => togglePaid(p.userId, p.paid)}
+                style={styles.markPaidBtn}
+                onPress={() => handleMarkPaid(p.userId)}
                 disabled={togglingPaid}
               >
                 {togglingPaid
-                  ? <ActivityIndicator size="small" color={p.paid ? Colors.textSecondary : Colors.success} />
+                  ? <ActivityIndicator size="small" color={Colors.success} />
                   : <>
-                      <Ionicons
-                        name={p.paid ? 'close-circle-outline' : 'checkmark-circle-outline'}
-                        size={15}
-                        color={p.paid ? Colors.textSecondary : Colors.success}
-                      />
-                      <Text style={[styles.markPaidText, p.paid && styles.markUnpaidText]}>
-                        {p.paid ? 'Mark unpaid' : 'Mark as paid'}
-                      </Text>
+                      <Ionicons name="checkmark-circle-outline" size={15} color={Colors.success} />
+                      <Text style={styles.markPaidText}>Mark as paid</Text>
                     </>
                 }
               </TouchableOpacity>
@@ -701,9 +691,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 12,
   },
-  markUnpaidBtn: { backgroundColor: Colors.background },
   markPaidText: { fontSize: 13, fontWeight: '700', color: Colors.success },
-  markUnpaidText: { color: Colors.textSecondary },
   proceedBar: {
     padding: 16,
     paddingBottom: 12,

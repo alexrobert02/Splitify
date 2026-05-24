@@ -22,16 +22,14 @@ public class ReceiptController {
 
     private final ReceiptService receiptService;
 
-    @PostMapping("/manual")
-    public ResponseEntity<ReceiptDto> createManual(
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ReceiptDto> createReceipt(
             @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @RequestBody CreateReceiptRequest request) {
+            @RequestPart(value = "title", required = false) String title,
+            @RequestPart(value = "groupId", required = false) String groupId) {
+        UUID gid = groupId != null ? UUID.fromString(groupId) : null;
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(receiptService.createManualReceipt(
-                currentUserId(userDetails),
-                request.getTitle(),
-                request.getGroupId()
-            ));
+            .body(receiptService.createManualReceipt(currentUserId(userDetails), title, gid));
     }
 
     @PostMapping(value = "/scan", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -122,14 +120,6 @@ public class ReceiptController {
                                           @PathVariable UUID receiptId,
                                           @PathVariable UUID userId) {
         receiptService.markPaid(receiptId, currentUserId(userDetails), userId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{receiptId}/participants/{userId}/pay")
-    public ResponseEntity<Void> markUnpaid(@AuthenticationPrincipal UserDetails userDetails,
-                                            @PathVariable UUID receiptId,
-                                            @PathVariable UUID userId) {
-        receiptService.markUnpaid(receiptId, currentUserId(userDetails), userId);
         return ResponseEntity.noContent().build();
     }
 

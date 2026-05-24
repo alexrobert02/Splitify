@@ -254,7 +254,7 @@ function CreateManualModal({
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const receipt = await api.receipts.createManual(title.trim() || undefined, groupId);
+      const receipt = await api.receipts.createReceipt(title.trim() || undefined, groupId);
       onClose();
       setTitle('');
       router.push(`/receipt/review?id=${receipt.id}` as any);

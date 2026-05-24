@@ -238,13 +238,6 @@ public class ReceiptService {
     }
 
     @Transactional
-    public void markUnpaid(UUID receiptId, UUID currentUserId, UUID payerId) {
-        Receipt receipt = findReceipt(receiptId);
-        assertIsScanner(receipt, currentUserId);
-        paymentRepository.deleteByReceiptIdAndPayerId(receiptId, payerId);
-    }
-
-    @Transactional
     public ReceiptDto finalizeReceipt(UUID receiptId, UUID currentUserId) {
         Receipt receipt = findReceipt(receiptId);
         assertIsScanner(receipt, currentUserId);
