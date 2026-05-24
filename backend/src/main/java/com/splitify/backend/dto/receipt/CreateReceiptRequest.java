@@ -6,12 +6,10 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class UpdateReceiptRequest {
+public class CreateReceiptRequest {
 
     @Size(max = 255)
     private String title;
-
-    private String currency;
 
     private UUID groupId;
 }

@@ -93,22 +93,6 @@ public class ReceiptService {
     }
 
     @Transactional
-    public ReceiptDto updateReceipt(UUID receiptId, UUID currentUserId, UpdateReceiptRequest request) {
-        Receipt receipt = findReceipt(receiptId);
-        assertAccess(receipt, currentUserId);
-
-        if (request.getTitle() != null) receipt.setTitle(request.getTitle());
-        if (request.getCurrency() != null) receipt.setCurrency(request.getCurrency());
-        if (request.getGroupId() != null) {
-            Group group = groupRepository.findById(request.getGroupId())
-                .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
-            receipt.setGroup(group);
-        }
-
-        return toDto(receiptRepository.save(receipt));
-    }
-
-    @Transactional
     public ReceiptItemDto addReceiptItem(UUID receiptId, UUID currentUserId, AddReceiptItemRequest request) {
         Receipt receipt = findReceipt(receiptId);
         assertAccess(receipt, currentUserId);
@@ -305,12 +289,39 @@ public class ReceiptService {
     // ---- helpers ----
 
     @Transactional
+    public ReceiptDto createManualReceipt(UUID currentUserId, String title, UUID groupId) {
+        User user = findUser(currentUserId);
+
+        Receipt receipt = Receipt.builder()
+            .title(title)
+            .scannedBy(user)
+            .currency("RON")
+            .totalAmount(BigDecimal.ZERO)
+            .category(ReceiptCategory.OTHER)
+            .status(ReceiptStatus.PENDING_REVIEW)
+            .build();
+
+        if (groupId != null) {
+            Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
+            receipt.setGroup(group);
+        }
+
+        return toDto(receiptRepository.save(receipt));
+    }
+
+    @Transactional
     public ReceiptDto confirmReview(UUID receiptId, UUID currentUserId) {
         Receipt receipt = findReceipt(receiptId);
         assertAccess(receipt, currentUserId);
         if (receipt.getStatus() == ReceiptStatus.PENDING_REVIEW) {
-            receipt.setStatus(ReceiptStatus.PENDING_ASSIGNMENT);
-            receiptRepository.save(receipt);
+            if (receipt.getGroup() == null) {
+                autoFinalizePersonalReceipt(receipt, receipt.getScannedBy());
+                receiptRepository.save(receipt);
+            } else {
+                receipt.setStatus(ReceiptStatus.PENDING_ASSIGNMENT);
+                receiptRepository.save(receipt);
+            }
         }
         return toDto(receipt);
     }

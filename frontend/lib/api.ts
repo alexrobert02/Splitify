@@ -112,6 +112,11 @@ export const api = {
     listByGroup: (groupId: string) =>
       request<ReceiptDto[]>(`/api/receipts/group/${groupId}`),
     get: (id: string) => request<ReceiptDto>(`/api/receipts/${id}`),
+    createManual: (title?: string, groupId?: string) =>
+      request<ReceiptDto>('/api/receipts/manual', {
+        method: 'POST',
+        body: JSON.stringify({ title: title || null, groupId: groupId || null }),
+      }),
     scan: async (
       imageUri: string,
       title?: string,

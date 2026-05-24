@@ -237,12 +237,77 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
   );
 }
 
+// ─── Manual receipt creation modal ───────────────────────────────────────────
+
+function CreateManualModal({
+  visible,
+  groupId,
+  onClose,
+}: {
+  visible: boolean;
+  groupId?: string;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      const receipt = await api.receipts.createManual(title.trim() || undefined, groupId);
+      onClose();
+      setTitle('');
+      router.push(`/receipt/review?id=${receipt.id}` as any);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide">
+      <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>New Receipt</Text>
+          <Text style={styles.label}>Title (optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Dinner at Pizza Place"
+            placeholderTextColor={Colors.textMuted}
+            value={title}
+            onChangeText={setTitle}
+            autoFocus
+          />
+          <View style={styles.modalActions}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => { onClose(); setTitle(''); }}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryBtn, creating && styles.btnDisabled]}
+              onPress={handleCreate}
+              disabled={creating}
+            >
+              {creating
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={styles.primaryBtnText}>Create & Add Items</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Solo (Personal) View ─────────────────────────────────────────────────────
 
 function SoloView({ onBack }: { onBack: () => void }) {
   const [receipts, setReceipts] = useState<ReceiptDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [manualVisible, setManualVisible] = useState(false);
 
   const load = async () => {
     try {
@@ -298,9 +363,16 @@ function SoloView({ onBack }: { onBack: () => void }) {
         )}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => router.push('/receipt/scan' as any)}>
-        <Ionicons name="camera" size={22} color="#fff" />
-      </TouchableOpacity>
+      <View style={styles.fabRow}>
+        <TouchableOpacity style={styles.fabSecondary} onPress={() => setManualVisible(true)}>
+          <Ionicons name="create-outline" size={22} color={Colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.fab} onPress={() => router.push('/receipt/scan' as any)}>
+          <Ionicons name="camera" size={22} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      <CreateManualModal visible={manualVisible} onClose={() => setManualVisible(false)} />
     </SafeAreaView>
   );
 }
@@ -318,6 +390,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [addModal, setAddModal] = useState(false);
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
+  const [manualVisible, setManualVisible] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     try {
@@ -431,9 +504,16 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
         )}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => router.push(`/receipt/scan?groupId=${id}` as any)}>
-        <Ionicons name="camera" size={22} color="#fff" />
-      </TouchableOpacity>
+      <View style={styles.fabRow}>
+        <TouchableOpacity style={styles.fabSecondary} onPress={() => setManualVisible(true)}>
+          <Ionicons name="create-outline" size={22} color={Colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.fab} onPress={() => router.push(`/receipt/scan?groupId=${id}` as any)}>
+          <Ionicons name="camera" size={22} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      <CreateManualModal visible={manualVisible} groupId={id} onClose={() => setManualVisible(false)} />
 
       {/* Three-dots action menu */}
       <Modal visible={menuVisible} transparent animationType="fade">
@@ -574,7 +654,9 @@ const styles = StyleSheet.create({
   scanGroupBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 4 },
   scanGroupBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  fab: { position: 'absolute', bottom: 24, right: 20, backgroundColor: Colors.primary, borderRadius: 16, width: 56, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  fabRow: { position: 'absolute', bottom: 24, right: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  fab: { backgroundColor: Colors.primary, borderRadius: 16, width: 56, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  fabSecondary: { backgroundColor: Colors.surface, borderRadius: 16, width: 48, height: 48, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: Colors.primary, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
 
   memberCard: { backgroundColor: Colors.background, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   memberAvatar: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center' },

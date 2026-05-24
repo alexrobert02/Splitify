@@ -22,6 +22,18 @@ public class ReceiptController {
 
     private final ReceiptService receiptService;
 
+    @PostMapping("/manual")
+    public ResponseEntity<ReceiptDto> createManual(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody CreateReceiptRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(receiptService.createManualReceipt(
+                currentUserId(userDetails),
+                request.getTitle(),
+                request.getGroupId()
+            ));
+    }
+
     @PostMapping(value = "/scan", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ReceiptDto> scanReceipt(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -49,13 +61,6 @@ public class ReceiptController {
     public ResponseEntity<ReceiptDto> getReceipt(@AuthenticationPrincipal UserDetails userDetails,
                                                   @PathVariable UUID receiptId) {
         return ResponseEntity.ok(receiptService.getReceipt(receiptId, currentUserId(userDetails)));
-    }
-
-    @PutMapping("/{receiptId}")
-    public ResponseEntity<ReceiptDto> updateReceipt(@AuthenticationPrincipal UserDetails userDetails,
-                                                     @PathVariable UUID receiptId,
-                                                     @Valid @RequestBody UpdateReceiptRequest request) {
-        return ResponseEntity.ok(receiptService.updateReceipt(receiptId, currentUserId(userDetails), request));
     }
 
     @PostMapping("/{receiptId}/items")
