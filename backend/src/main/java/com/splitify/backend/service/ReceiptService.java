@@ -108,6 +108,44 @@ public class ReceiptService {
     }
 
     @Transactional
+    public ReceiptItemDto addReceiptItem(UUID receiptId, UUID currentUserId, AddReceiptItemRequest request) {
+        Receipt receipt = findReceipt(receiptId);
+        assertAccess(receipt, currentUserId);
+
+        BigDecimal qty = request.getQuantity() != null ? request.getQuantity() : BigDecimal.ONE;
+        BigDecimal price = request.getUnitPrice() != null ? request.getUnitPrice() : BigDecimal.ZERO;
+        BigDecimal total = qty.multiply(price).setScale(2, java.math.RoundingMode.HALF_UP);
+
+        ReceiptItem item = ReceiptItem.builder()
+            .receipt(receipt)
+            .name(request.getName())
+            .quantity(qty)
+            .unitPrice(price)
+            .totalPrice(total)
+            .position(receipt.getItems().size())
+            .build();
+
+        receipt.getItems().add(item);
+        recalculateReceiptTotal(receipt);
+        receiptRepository.save(receipt);
+
+        return toItemDto(item);
+    }
+
+    @Transactional
+    public void deleteReceiptItem(UUID receiptId, UUID itemId, UUID currentUserId) {
+        Receipt receipt = findReceipt(receiptId);
+        assertAccess(receipt, currentUserId);
+
+        boolean removed = receipt.getItems().removeIf(i -> i.getId().equals(itemId));
+        if (!removed) {
+            throw new ResourceNotFoundException("Receipt item not found");
+        }
+        recalculateReceiptTotal(receipt);
+        receiptRepository.save(receipt);
+    }
+
+    @Transactional
     public ReceiptItemDto updateReceiptItem(UUID receiptId, UUID itemId, UUID currentUserId,
                                             UpdateReceiptItemRequest request) {
         Receipt receipt = findReceipt(receiptId);

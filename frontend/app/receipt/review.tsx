@@ -1,0 +1,455 @@
+import { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { api } from '@/lib/api';
+import { Colors } from '@/constants/Colors';
+import type { ReceiptDto, ReceiptItemDto } from '@/types';
+
+type EditState = { name: string; quantity: string; unitPrice: string };
+
+const emptyEdit = (): EditState => ({ name: '', quantity: '', unitPrice: '' });
+
+export default function ReviewScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [receipt, setReceipt] = useState<ReceiptDto | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editState, setEditState] = useState<EditState>(emptyEdit());
+  const [saving, setSaving] = useState(false);
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addState, setAddState] = useState<EditState>(emptyEdit());
+  const [adding, setAdding] = useState(false);
+
+  const busy = editingId !== null || showAddForm;
+
+  useEffect(() => {
+    api.receipts
+      .get(id)
+      .then(setReceipt)
+      .catch((e: any) => Alert.alert('Error', e.message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const startEdit = (item: ReceiptItemDto) => {
+    setEditingId(item.id);
+    setEditState({ name: item.name, quantity: String(item.quantity), unitPrice: String(item.unitPrice) });
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const saveEdit = async (item: ReceiptItemDto) => {
+    const qty = parseFloat(editState.quantity);
+    const price = parseFloat(editState.unitPrice);
+    if (!editState.name.trim() || isNaN(qty) || isNaN(price) || qty <= 0 || price < 0) {
+      Alert.alert('Invalid input', 'Please enter a valid name, quantity, and price.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const updated = await api.receipts.updateItem(id, item.id, {
+        name: editState.name.trim(),
+        quantity: qty,
+        unitPrice: price,
+      });
+      setReceipt((prev) =>
+        prev ? { ...prev, items: prev.items.map((i) => (i.id === item.id ? updated : i)) } : prev
+      );
+      setEditingId(null);
+    } catch (e: any) {
+      Alert.alert('Save failed', e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = (item: ReceiptItemDto) => {
+    Alert.alert('Delete item', `Remove "${item.name}" from the receipt?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.receipts.deleteItem(id, item.id);
+            setReceipt((prev) =>
+              prev ? { ...prev, items: prev.items.filter((i) => i.id !== item.id) } : prev
+            );
+          } catch (e: any) {
+            Alert.alert('Delete failed', e.message);
+          }
+        },
+      },
+    ]);
+  };
+
+  const cancelAdd = () => {
+    setShowAddForm(false);
+    setAddState(emptyEdit());
+  };
+
+  const saveAdd = async () => {
+    const qty = parseFloat(addState.quantity);
+    const price = parseFloat(addState.unitPrice);
+    if (!addState.name.trim() || isNaN(qty) || isNaN(price) || qty <= 0 || price < 0) {
+      Alert.alert('Invalid input', 'Please enter a valid name, quantity, and price.');
+      return;
+    }
+    setAdding(true);
+    try {
+      const newItem = await api.receipts.addItem(id, {
+        name: addState.name.trim(),
+        quantity: qty,
+        unitPrice: price,
+      });
+      setReceipt((prev) => (prev ? { ...prev, items: [...prev.items, newItem] } : prev));
+      setShowAddForm(false);
+      setAddState(emptyEdit());
+    } catch (e: any) {
+      Alert.alert('Add failed', e.message);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const currency = receipt?.currency ?? '';
+  const total = receipt?.items.reduce((sum, i) => sum + i.totalPrice, 0) ?? 0;
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+            <Ionicons name="arrow-back" size={20} color={Colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Review Items</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.subtitle}>
+            Review and correct the items extracted from your receipt before continuing.
+          </Text>
+
+          {receipt?.items.map((item) =>
+            editingId === item.id ? (
+              <View key={item.id} style={[styles.card, styles.cardEditing]}>
+                <ItemForm
+                  state={editState}
+                  onChange={setEditState}
+                  onSave={() => saveEdit(item)}
+                  onCancel={cancelEdit}
+                  saving={saving}
+                />
+              </View>
+            ) : (
+              <View key={item.id} style={styles.card}>
+                <View style={styles.itemRow}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemMeta}>
+                      {item.quantity} × {currency} {item.unitPrice.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.itemRight}>
+                    <Text style={styles.itemTotal}>
+                      {currency} {item.totalPrice.toFixed(2)}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => startEdit(item)}
+                      style={styles.iconBtn}
+                      disabled={busy}
+                    >
+                      <Ionicons name="pencil" size={15} color={busy ? Colors.textMuted : Colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDelete(item)}
+                      style={[styles.iconBtn, styles.iconBtnDanger]}
+                      disabled={busy}
+                    >
+                      <Ionicons name="trash-outline" size={15} color={busy ? Colors.textMuted : Colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )
+          )}
+
+          {receipt?.items.length === 0 && !showAddForm && (
+            <View style={styles.emptyState}>
+              <Ionicons name="receipt-outline" size={40} color={Colors.textMuted} />
+              <Text style={styles.emptyText}>No items were extracted. Add them manually below.</Text>
+            </View>
+          )}
+
+          {showAddForm ? (
+            <View style={[styles.card, styles.cardEditing]}>
+              <Text style={styles.addFormTitle}>New Item</Text>
+              <ItemForm
+                state={addState}
+                onChange={setAddState}
+                onSave={saveAdd}
+                onCancel={cancelAdd}
+                saving={adding}
+                autoFocus
+              />
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.addBtn, editingId !== null && styles.addBtnDisabled]}
+              onPress={() => setShowAddForm(true)}
+              disabled={editingId !== null}
+            >
+              <Ionicons name="add-circle-outline" size={18} color={editingId !== null ? Colors.textMuted : Colors.primary} />
+              <Text style={[styles.addBtnText, editingId !== null && styles.addBtnTextDisabled]}>
+                Add Item
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>
+              {currency} {total.toFixed(2)}
+            </Text>
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.confirmBtn, busy && styles.btnDisabled]}
+            onPress={() => router.replace(`/receipt/${id}` as any)}
+            disabled={busy}
+          >
+            <Text style={styles.confirmBtnText}>Confirm & Continue</Text>
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+function ItemForm({
+  state,
+  onChange,
+  onSave,
+  onCancel,
+  saving,
+  autoFocus,
+}: {
+  state: EditState;
+  onChange: (s: EditState) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  autoFocus?: boolean;
+}) {
+  return (
+    <View style={styles.formInner}>
+      <View style={styles.fieldGroup}>
+        <Text style={styles.fieldLabel}>Name</Text>
+        <TextInput
+          style={styles.input}
+          value={state.name}
+          onChangeText={(v) => onChange({ ...state, name: v })}
+          placeholder="Item name"
+          placeholderTextColor={Colors.textMuted}
+          autoFocus={autoFocus}
+        />
+      </View>
+      <View style={styles.row}>
+        <View style={[styles.fieldGroup, styles.flex]}>
+          <Text style={styles.fieldLabel}>Quantity</Text>
+          <TextInput
+            style={styles.input}
+            value={state.quantity}
+            onChangeText={(v) => onChange({ ...state, quantity: v })}
+            keyboardType="decimal-pad"
+            placeholder="1"
+            placeholderTextColor={Colors.textMuted}
+          />
+        </View>
+        <View style={[styles.fieldGroup, styles.flex]}>
+          <Text style={styles.fieldLabel}>Unit Price</Text>
+          <TextInput
+            style={styles.input}
+            value={state.unitPrice}
+            onChangeText={(v) => onChange({ ...state, unitPrice: v })}
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+            placeholderTextColor={Colors.textMuted}
+          />
+        </View>
+      </View>
+      <View style={styles.editActions}>
+        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={saving}>
+          <Text style={styles.cancelBtnText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.saveBtn} onPress={onSave} disabled={saving}>
+          {saving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.saveBtnText}>Save</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: Colors.background },
+  flex: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
+  content: { padding: 16, gap: 12, paddingBottom: 24 },
+  subtitle: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  cardEditing: { borderColor: Colors.primary },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  itemInfo: { flex: 1, gap: 3 },
+  itemName: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  itemMeta: { fontSize: 13, color: Colors.textSecondary },
+  itemRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  itemTotal: { fontSize: 15, fontWeight: '700', color: Colors.text, marginRight: 4 },
+  iconBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconBtnDanger: { backgroundColor: Colors.errorLight },
+  formInner: { gap: 12 },
+  addFormTitle: { fontSize: 13, fontWeight: '700', color: Colors.primary, marginBottom: -4 },
+  fieldGroup: { gap: 4 },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
+  input: {
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: Colors.text,
+    backgroundColor: Colors.background,
+  },
+  row: { flexDirection: 'row', gap: 12 },
+  editActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: 'center',
+  },
+  cancelBtnText: { fontSize: 14, fontWeight: '600', color: Colors.textSecondary },
+  saveBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+  },
+  saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderStyle: 'dashed',
+    backgroundColor: Colors.primaryLight,
+  },
+  addBtnDisabled: { borderColor: Colors.border, backgroundColor: Colors.surface },
+  addBtnText: { fontSize: 14, fontWeight: '700', color: Colors.primary },
+  addBtnTextDisabled: { color: Colors.textMuted },
+  emptyState: { alignItems: 'center', gap: 10, paddingVertical: 24 },
+  emptyText: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingTop: 4,
+  },
+  totalLabel: { fontSize: 15, fontWeight: '600', color: Colors.textSecondary },
+  totalValue: { fontSize: 18, fontWeight: '800', color: Colors.text },
+  footer: {
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 8 : 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  confirmBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  btnDisabled: { opacity: 0.5 },
+  confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+});

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -57,14 +56,7 @@ export default function ScanScreen() {
     setUploading(true);
     try {
       const receipt = await api.receipts.scan(imageUri, title.trim() || undefined, groupId);
-      const isPersonal = !groupId;
-      Alert.alert(
-        'Receipt scanned!',
-        isPersonal
-          ? `Found ${receipt.items?.length ?? 0} items.`
-          : `Found ${receipt.items?.length ?? 0} items. Assign them to your group members.`,
-        [{ text: 'View receipt', onPress: () => router.replace(`/receipt/${receipt.id}` as any) }]
-      );
+      router.replace(`/receipt/review?id=${receipt.id}` as any);
     } catch (e: any) {
       Alert.alert('Upload failed', e.message ?? 'Please try again');
     } finally {

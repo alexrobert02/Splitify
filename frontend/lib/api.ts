@@ -144,6 +144,11 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
+    addItem: (receiptId: string, data: { name: string; quantity: number; unitPrice: number }) =>
+      request<ReceiptItemDto>(`/api/receipts/${receiptId}/items`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
     updateItem: (
       receiptId: string,
       itemId: string,
@@ -153,6 +158,8 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
+    deleteItem: (receiptId: string, itemId: string) =>
+      request<void>(`/api/receipts/${receiptId}/items/${itemId}`, { method: 'DELETE' }),
     assignItem: (receiptId: string, itemId: string, assignees: AssigneeEntry[]) =>
       request<ReceiptItemDto>(`/api/receipts/${receiptId}/items/${itemId}/assign`, {
         method: 'POST',

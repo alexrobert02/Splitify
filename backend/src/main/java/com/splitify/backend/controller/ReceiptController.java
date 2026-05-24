@@ -58,6 +58,22 @@ public class ReceiptController {
         return ResponseEntity.ok(receiptService.updateReceipt(receiptId, currentUserId(userDetails), request));
     }
 
+    @PostMapping("/{receiptId}/items")
+    public ResponseEntity<ReceiptItemDto> addItem(@AuthenticationPrincipal UserDetails userDetails,
+                                                   @PathVariable UUID receiptId,
+                                                   @Valid @RequestBody AddReceiptItemRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(receiptService.addReceiptItem(receiptId, currentUserId(userDetails), request));
+    }
+
+    @DeleteMapping("/{receiptId}/items/{itemId}")
+    public ResponseEntity<Void> deleteItem(@AuthenticationPrincipal UserDetails userDetails,
+                                            @PathVariable UUID receiptId,
+                                            @PathVariable UUID itemId) {
+        receiptService.deleteReceiptItem(receiptId, itemId, currentUserId(userDetails));
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/{receiptId}/items/{itemId}")
     public ResponseEntity<ReceiptItemDto> updateItem(@AuthenticationPrincipal UserDetails userDetails,
                                                       @PathVariable UUID receiptId,
