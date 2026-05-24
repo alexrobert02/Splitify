@@ -165,6 +165,7 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ assignees }),
       }),
+    confirmReview: (id: string) => request<ReceiptDto>(`/api/receipts/${id}/confirm-review`, { method: 'POST' }),
     finalize: (id: string) => request<ReceiptDto>(`/api/receipts/${id}/finalize`, { method: 'POST' }),
     summary: (id: string) => request<ReceiptSummaryDto>(`/api/receipts/${id}/summary`),
     markPaid: (receiptId: string, userId: string) =>

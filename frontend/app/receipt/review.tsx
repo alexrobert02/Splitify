@@ -34,8 +34,20 @@ export default function ReviewScreen() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addState, setAddState] = useState<EditState>(emptyEdit());
   const [adding, setAdding] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const busy = editingId !== null || showAddForm;
+
+  const handleConfirm = async () => {
+    setConfirming(true);
+    try {
+      await api.receipts.confirmReview(id);
+      router.replace(`/receipt/${id}` as any);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+      setConfirming(false);
+    }
+  };
 
   useEffect(() => {
     api.receipts
@@ -241,12 +253,17 @@ export default function ReviewScreen() {
 
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.confirmBtn, busy && styles.btnDisabled]}
-            onPress={() => router.replace(`/receipt/${id}` as any)}
-            disabled={busy}
+            style={[styles.confirmBtn, (busy || confirming) && styles.btnDisabled]}
+            onPress={handleConfirm}
+            disabled={busy || confirming}
           >
-            <Text style={styles.confirmBtnText}>Confirm & Continue</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
+            {confirming
+              ? <ActivityIndicator color="#fff" />
+              : <>
+                  <Text style={styles.confirmBtnText}>Confirm & Continue</Text>
+                  <Ionicons name="arrow-forward" size={20} color="#fff" />
+                </>
+            }
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

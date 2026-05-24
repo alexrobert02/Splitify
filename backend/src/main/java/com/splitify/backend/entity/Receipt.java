@@ -52,6 +52,11 @@ public class Receipt {
     @Builder.Default
     private boolean finalized = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(30) default 'PENDING_REVIEW'")
+    @Builder.Default
+    private ReceiptStatus status = ReceiptStatus.PENDING_REVIEW;
+
     @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")
     @Builder.Default

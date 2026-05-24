@@ -36,10 +36,13 @@ function LoadingView() {
 
 function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () => void }) {
   const date = new Date(receipt.scannedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const destination = receipt.status === 'PENDING_REVIEW'
+    ? `/receipt/review?id=${receipt.id}`
+    : `/receipt/${receipt.id}`;
   return (
     <TouchableOpacity
       style={styles.receiptCard}
-      onPress={() => router.push(`/receipt/${receipt.id}` as any)}
+      onPress={() => router.push(destination as any)}
       activeOpacity={0.7}
     >
       <View style={styles.receiptLeft}>

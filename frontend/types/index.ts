@@ -24,6 +24,7 @@ export interface GroupDto {
 
 export type SplitType = 'EQUAL' | 'PERCENTAGE' | 'FIXED' | 'COUNT';
 export type ReceiptCategory = 'GROCERIES' | 'DINING' | 'TRANSPORT' | 'ENTERTAINMENT' | 'SHOPPING' | 'UTILITIES' | 'HEALTH' | 'OTHER';
+export type ReceiptStatus = 'PENDING_REVIEW' | 'PENDING_ASSIGNMENT' | 'FINALIZED';
 
 export interface AssignmentDto {
   id: string;
@@ -56,6 +57,7 @@ export interface ReceiptDto {
   currency: string;
   category: ReceiptCategory;
   finalized: boolean;
+  status: ReceiptStatus;
   scannedAt: string;
   items: ReceiptItemDto[];
 }

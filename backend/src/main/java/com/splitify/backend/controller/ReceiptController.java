@@ -100,6 +100,12 @@ public class ReceiptController {
         return ResponseEntity.ok(receiptService.getSummary(receiptId, currentUserId(userDetails)));
     }
 
+    @PostMapping("/{receiptId}/confirm-review")
+    public ResponseEntity<ReceiptDto> confirmReview(@AuthenticationPrincipal UserDetails userDetails,
+                                                     @PathVariable UUID receiptId) {
+        return ResponseEntity.ok(receiptService.confirmReview(receiptId, currentUserId(userDetails)));
+    }
+
     @PostMapping("/{receiptId}/finalize")
     public ResponseEntity<ReceiptDto> finalizeReceipt(@AuthenticationPrincipal UserDetails userDetails,
                                                        @PathVariable UUID receiptId) {

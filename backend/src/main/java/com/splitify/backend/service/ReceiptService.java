@@ -2,6 +2,7 @@ package com.splitify.backend.service;
 
 import com.splitify.backend.dto.receipt.*;
 import com.splitify.backend.entity.*;
+import com.splitify.backend.entity.ReceiptStatus;
 import com.splitify.backend.repository.PaymentRepository;
 import com.splitify.backend.exception.BadRequestException;
 import com.splitify.backend.exception.ResourceNotFoundException;
@@ -269,6 +270,7 @@ public class ReceiptService {
             throw new BadRequestException("All items must be assigned before finalizing");
         }
         receipt.setFinalized(true);
+        receipt.setStatus(ReceiptStatus.FINALIZED);
         Receipt saved = receiptRepository.save(receipt);
 
         // Scanner paid upfront, so auto-mark them as paid
@@ -302,6 +304,17 @@ public class ReceiptService {
 
     // ---- helpers ----
 
+    @Transactional
+    public ReceiptDto confirmReview(UUID receiptId, UUID currentUserId) {
+        Receipt receipt = findReceipt(receiptId);
+        assertAccess(receipt, currentUserId);
+        if (receipt.getStatus() == ReceiptStatus.PENDING_REVIEW) {
+            receipt.setStatus(ReceiptStatus.PENDING_ASSIGNMENT);
+            receiptRepository.save(receipt);
+        }
+        return toDto(receipt);
+    }
+
     private void autoFinalizePersonalReceipt(Receipt receipt, User user) {
         for (ReceiptItem item : receipt.getItems()) {
             ItemAssignment assignment = ItemAssignment.builder()
@@ -313,6 +326,7 @@ public class ReceiptService {
             item.getAssignments().add(assignment);
         }
         receipt.setFinalized(true);
+        receipt.setStatus(ReceiptStatus.FINALIZED);
         paymentRepository.save(Payment.builder().receipt(receipt).payer(user).build());
     }
 
@@ -415,6 +429,7 @@ public class ReceiptService {
             receipt.getCurrency(),
             receipt.getCategory(),
             receipt.isFinalized(),
+            receipt.getStatus(),
             receipt.getScannedAt(),
             itemDtos
         );
