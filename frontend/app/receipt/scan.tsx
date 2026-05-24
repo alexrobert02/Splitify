@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
+  Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform,

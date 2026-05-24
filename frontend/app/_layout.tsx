@@ -15,7 +15,6 @@ export default function RootLayout() {
           <Stack.Screen name="receipt/scan" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="receipt/review" options={{ headerShown: false }} />
           <Stack.Screen name="receipt/[id]" />
-          <Stack.Screen name="group/[id]" />
         </Stack>
       </NotificationProvider>
     </AuthProvider>
