@@ -278,15 +278,22 @@ public class ReceiptService {
     // ---- helpers ----
 
     @Transactional
-    public ReceiptDto createManualReceipt(UUID currentUserId, String title, UUID groupId) {
+    public ReceiptDto createManualReceipt(UUID currentUserId, String title, UUID groupId, String category) {
         User user = findUser(currentUserId);
+
+        ReceiptCategory receiptCategory = ReceiptCategory.OTHER;
+        if (category != null) {
+            try {
+                receiptCategory = ReceiptCategory.valueOf(category.toUpperCase());
+            } catch (IllegalArgumentException ignored) {}
+        }
 
         Receipt receipt = Receipt.builder()
             .title(title)
             .scannedBy(user)
             .currency("RON")
             .totalAmount(BigDecimal.ZERO)
-            .category(ReceiptCategory.OTHER)
+            .category(receiptCategory)
             .status(ReceiptStatus.PENDING_REVIEW)
             .build();
 

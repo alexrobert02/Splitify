@@ -28,10 +28,11 @@ public class ReceiptController {
     public ResponseEntity<ReceiptDto> createReceipt(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) String title,
-            @RequestParam(required = false) UUID groupId) {
-        log.info("CREATE receipt title='{}' groupId={}", title, groupId);
+            @RequestParam(required = false) UUID groupId,
+            @RequestParam(required = false) String category) {
+        log.info("CREATE receipt title='{}' groupId={} category={}", title, groupId, category);
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(receiptService.createManualReceipt(currentUserId(userDetails), title, groupId));
+            .body(receiptService.createManualReceipt(currentUserId(userDetails), title, groupId, category));
     }
 
     @PostMapping(value = "/scan", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

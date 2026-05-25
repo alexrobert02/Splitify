@@ -247,6 +247,18 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
 
 // ─── Manual receipt creation modal ───────────────────────────────────────────
 
+const CATEGORIES = [
+  { value: 'GROCERIES',     label: 'Groceries',     icon: 'basket-outline',              color: '#10B981' },
+  { value: 'DINING',        label: 'Dining',         icon: 'restaurant-outline',          color: '#F97316' },
+  { value: 'TRANSPORT',     label: 'Transport',      icon: 'car-outline',                 color: '#3B82F6' },
+  { value: 'ENTERTAINMENT', label: 'Fun',            icon: 'film-outline',                color: '#A855F7' },
+  { value: 'SHOPPING',      label: 'Shopping',       icon: 'bag-handle-outline',          color: '#EC4899' },
+  { value: 'UTILITIES',     label: 'Utilities',      icon: 'flash-outline',               color: '#F59E0B' },
+  { value: 'HEALTH',        label: 'Health',         icon: 'medkit-outline',              color: '#EF4444' },
+  { value: 'OTHER',         label: 'Other',          icon: 'ellipsis-horizontal-outline', color: '#6B7280' },
+] as const;
+type CategoryValue = typeof CATEGORIES[number]['value'];
+
 function CreateManualModal({
   visible,
   groupId,
@@ -257,14 +269,18 @@ function CreateManualModal({
   onClose: () => void;
 }) {
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState<CategoryValue | null>(null);
   const [creating, setCreating] = useState(false);
 
+  const reset = () => { setTitle(''); setCategory(null); };
+
   const handleCreate = async () => {
+    if (!category) return;
     setCreating(true);
     try {
-      const receipt = await api.receipts.createReceipt(title.trim() || undefined, groupId);
+      const receipt = await api.receipts.createReceipt(title.trim() || undefined, groupId, category);
       onClose();
-      setTitle('');
+      reset();
       router.push(`/receipt/review?id=${receipt.id}` as any);
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -288,14 +304,30 @@ function CreateManualModal({
             onChangeText={setTitle}
             autoFocus
           />
+          <Text style={styles.label}>Category</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={{ gap: 8 }}>
+            {CATEGORIES.map(cat => {
+              const active = category === cat.value;
+              return (
+                <TouchableOpacity
+                  key={cat.value}
+                  style={[styles.categoryPill, active && { borderColor: cat.color, backgroundColor: cat.color + '18' }]}
+                  onPress={() => setCategory(cat.value)}
+                >
+                  <Ionicons name={cat.icon as any} size={14} color={active ? cat.color : Colors.textMuted} />
+                  <Text style={[styles.categoryPillText, active && { color: cat.color }]}>{cat.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
           <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => { onClose(); setTitle(''); }}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => { onClose(); reset(); }}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.primaryBtn, creating && styles.btnDisabled]}
+              style={[styles.primaryBtn, (creating || !category) && styles.btnDisabled]}
               onPress={handleCreate}
-              disabled={creating}
+              disabled={creating || !category}
             >
               {creating
                 ? <ActivityIndicator color="#fff" size="small" />
@@ -678,6 +710,19 @@ const styles = StyleSheet.create({
   roleText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
   ownerText: { color: Colors.primary },
 
+  categoryScroll: { marginBottom: 16 },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+  categoryPillText: { fontSize: 13, fontWeight: '600', color: Colors.textMuted },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: Colors.overlay },
   modalSheet: { backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 20 },
