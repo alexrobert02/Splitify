@@ -64,10 +64,6 @@ public class ReceiptService {
         populateFromOcr(receipt, ocrResult);
         receiptRepository.save(receipt);
 
-        if (groupId == null) {
-            autoFinalizePersonalReceipt(receipt, user);
-        }
-
         return toDto(receipt);
     }
 

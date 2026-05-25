@@ -22,14 +22,13 @@ public class ReceiptController {
 
     private final ReceiptService receiptService;
 
-    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping("/create")
     public ResponseEntity<ReceiptDto> createReceipt(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestPart(value = "title", required = false) String title,
-            @RequestPart(value = "groupId", required = false) String groupId) {
-        UUID gid = groupId != null ? UUID.fromString(groupId) : null;
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) UUID groupId) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(receiptService.createManualReceipt(currentUserId(userDetails), title, gid));
+            .body(receiptService.createManualReceipt(currentUserId(userDetails), title, groupId));
     }
 
     @PostMapping(value = "/scan", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -37,11 +36,9 @@ public class ReceiptController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestPart("image") MultipartFile image,
             @RequestPart(value = "title", required = false) String title,
-            @RequestPart(value = "groupId", required = false) String groupId) {
-
-        UUID gid = groupId != null ? UUID.fromString(groupId) : null;
+            @RequestPart(value = "groupId", required = false) UUID groupId) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(receiptService.scanReceipt(currentUserId(userDetails), image, title, gid));
+            .body(receiptService.scanReceipt(currentUserId(userDetails), image, title, groupId));
     }
 
     @GetMapping

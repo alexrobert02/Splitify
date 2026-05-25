@@ -112,21 +112,11 @@ export const api = {
     listByGroup: (groupId: string) =>
       request<ReceiptDto[]>(`/api/receipts/group/${groupId}`),
     get: (id: string) => request<ReceiptDto>(`/api/receipts/${id}`),
-    createReceipt: async (title?: string, groupId?: string): Promise<ReceiptDto> => {
-      const token = await storage.getToken();
-      const formData = new FormData();
-      if (title) formData.append('title', title);
-      if (groupId) formData.append('groupId', groupId);
-      const response = await fetch(`${BASE_URL}/api/receipts/create`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.message || `HTTP ${response.status}`);
-      }
-      return response.json();
+    createReceipt: (title?: string, groupId?: string) => {
+      const params = new URLSearchParams();
+      if (title) params.append('title', title);
+      if (groupId) params.append('groupId', groupId);
+      return request<ReceiptDto>(`/api/receipts/create?${params}`, { method: 'POST' });
     },
     scan: async (
       imageUri: string,

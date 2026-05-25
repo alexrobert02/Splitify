@@ -34,17 +34,25 @@ function LoadingView() {
   );
 }
 
+const STATUS_DOT: Record<string, string> = {
+  PENDING_REVIEW:     '#F59E0B',
+  PENDING_ASSIGNMENT: '#3B82F6',
+  FINALIZED:          '#10B981',
+};
+
 function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () => void }) {
   const date = new Date(receipt.scannedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const destination = receipt.status === 'PENDING_REVIEW'
     ? `/receipt/review?id=${receipt.id}`
     : `/receipt/${receipt.id}`;
+  const dotColor = STATUS_DOT[receipt.status] ?? STATUS_DOT.FINALIZED;
   return (
     <TouchableOpacity
       style={styles.receiptCard}
       onPress={() => router.push(destination as any)}
       activeOpacity={0.7}
     >
+      <View style={[styles.statusStrip, { backgroundColor: dotColor }]} />
       <View style={styles.receiptLeft}>
         <View style={[styles.receiptIcon, { backgroundColor: Colors.primaryLight }]}>
           <Ionicons name="receipt" size={18} color={Colors.primary} />
@@ -641,6 +649,7 @@ const styles = StyleSheet.create({
   receiptCard: { backgroundColor: Colors.surface, borderRadius: 14, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   receiptLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   receiptIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  statusStrip: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderTopLeftRadius: 14, borderBottomLeftRadius: 14 },
   receiptInfo: { flex: 1 },
   receiptTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
   receiptDate: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
