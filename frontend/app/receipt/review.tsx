@@ -20,7 +20,7 @@ import type { ReceiptDto, ReceiptItemDto } from '@/types';
 
 type EditState = { name: string; quantity: string; unitPrice: string };
 
-const emptyEdit = (): EditState => ({ name: '', quantity: '', unitPrice: '' });
+const emptyEdit = (): EditState => ({ name: '', quantity: '1', unitPrice: '' });
 
 export default function ReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -123,12 +123,13 @@ export default function ReviewScreen() {
     }
     setAdding(true);
     try {
-      const newItem = await api.receipts.addItem(id, {
+      await api.receipts.addItem(id, {
         name: addState.name.trim(),
         quantity: qty,
         unitPrice: price,
       });
-      setReceipt((prev) => (prev ? { ...prev, items: [...prev.items, newItem] } : prev));
+      const updated = await api.receipts.get(id);
+      setReceipt(updated);
       setShowAddForm(false);
       setAddState(emptyEdit());
     } catch (e: any) {

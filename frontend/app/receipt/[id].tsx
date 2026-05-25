@@ -39,6 +39,36 @@ const CATEGORY_CONFIG: Record<ReceiptCategory, { icon: string; color: string; la
   OTHER:         { icon: 'ellipsis-horizontal-outline', color: '#6B7280', label: 'Other' },
 };
 
+function ReceiptMeta({ receipt, currency }: { receipt: ReceiptDto; currency: string }) {
+  const cfg = CATEGORY_CONFIG[receipt.category];
+  return (
+    <View style={[styles.metaCard, { marginHorizontal: 0, marginTop: 0, marginBottom: 4 }]}>
+      <View style={styles.metaRow}>
+        <Text style={styles.metaLabel}>Total</Text>
+        <Text style={styles.metaTotal}>{currency} {Number(receipt.totalAmount).toFixed(2)}</Text>
+      </View>
+      <View style={styles.metaDivider} />
+      <View style={styles.metaRow}>
+        <Text style={styles.metaLabel}>Scanned by</Text>
+        <Text style={styles.metaValue}>{receipt.scannedByName}</Text>
+      </View>
+      {receipt.groupName && (
+        <View style={styles.metaRow}>
+          <Text style={styles.metaLabel}>Group</Text>
+          <Text style={styles.metaValue}>{receipt.groupName}</Text>
+        </View>
+      )}
+      <View style={styles.metaRow}>
+        <Text style={styles.metaLabel}>Category</Text>
+        <View style={[styles.categoryBadge, { backgroundColor: cfg.color + '18' }]}>
+          <Ionicons name={cfg.icon as any} size={13} color={cfg.color} />
+          <Text style={[styles.categoryText, { color: cfg.color }]}>{cfg.label}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 // ─── Assign Item Modal ────────────────────────────────────────────────────────
 function AssignModal({
   visible,
@@ -236,15 +266,15 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
     }
   };
 
-  if (loading) return <ActivityIndicator style={{ marginTop: 40 }} color={Colors.primary} />;
-  if (!summary) return null;
-
-  const currency = summary.currency ?? 'RON';
+  const currency = summary?.currency ?? receipt.currency ?? 'RON';
   const isScanner = user?.id === receipt.scannedById;
 
   return (
     <ScrollView contentContainerStyle={styles.summaryContent}>
-      {summary.participants.map(p => {
+      <ReceiptMeta receipt={receipt} currency={currency} />
+      {loading
+        ? <ActivityIndicator style={{ marginTop: 20 }} color={Colors.primary} />
+        : summary?.participants.map(p => {
         const isCurrentUser = p.userId === user?.id;
         const owesPayment = isCurrentUser && !isScanner && p.totalOwed > 0;
         const canPayRevolut = owesPayment && !!receipt.scannedByRevolutTag;
@@ -308,7 +338,8 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
             )}
           </View>
         );
-      })}
+      })
+      }
     </ScrollView>
   );
 }
@@ -413,41 +444,12 @@ export default function ReceiptDetailScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.metaCard}>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaLabel}>Total</Text>
-          <Text style={styles.metaTotal}>{currency} {Number(receipt.totalAmount).toFixed(2)}</Text>
-        </View>
-        <View style={styles.metaDivider} />
-        <View style={styles.metaRow}>
-          <Text style={styles.metaLabel}>Scanned by</Text>
-          <Text style={styles.metaValue}>{receipt.scannedByName}</Text>
-        </View>
-        {receipt.groupName && (
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Group</Text>
-            <Text style={styles.metaValue}>{receipt.groupName}</Text>
-          </View>
-        )}
-        {(() => {
-          const cfg = CATEGORY_CONFIG[receipt.category];
-          return (
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Category</Text>
-              <View style={[styles.categoryBadge, { backgroundColor: cfg.color + '18' }]}>
-                <Ionicons name={cfg.icon as any} size={13} color={cfg.color} />
-                <Text style={[styles.categoryText, { color: cfg.color }]}>{cfg.label}</Text>
-              </View>
-            </View>
-          );
-        })()}
-      </View>
-
       {receipt.finalized ? (
         <SummaryTab receipt={receipt} />
       ) : (
         <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.itemsList}>
+            <ReceiptMeta receipt={receipt} currency={currency} />
             {receipt.items?.length === 0 && (
               <Text style={styles.noItems}>No items detected. Try scanning again.</Text>
             )}
