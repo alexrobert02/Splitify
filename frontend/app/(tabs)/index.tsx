@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
   receiptCard: { backgroundColor: Colors.surface, borderRadius: 14, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   receiptLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   receiptIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  statusStrip: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderTopLeftRadius: 14, borderBottomLeftRadius: 14 },
+  statusStrip: { position: 'absolute', left: 0, top: 6, bottom: 6, width: 3, borderRadius: 2 },
   receiptInfo: { flex: 1 },
   receiptTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
   receiptDate: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
