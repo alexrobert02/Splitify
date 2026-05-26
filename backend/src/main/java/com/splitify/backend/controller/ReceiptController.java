@@ -55,9 +55,10 @@ public class ReceiptController {
 
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<ReceiptDto>> getGroupReceipts(@AuthenticationPrincipal UserDetails userDetails,
-                                                              @PathVariable UUID groupId) {
-        log.info("GET receipts groupId={}", groupId);
-        return ResponseEntity.ok(receiptService.getGroupReceipts(groupId, currentUserId(userDetails)));
+                                                              @PathVariable UUID groupId,
+                                                              @RequestParam(required = false, defaultValue = "false") boolean unpaidOnly) {
+        log.info("GET receipts groupId={} unpaidOnly={}", groupId, unpaidOnly);
+        return ResponseEntity.ok(receiptService.getGroupReceipts(groupId, currentUserId(userDetails), unpaidOnly));
     }
 
     @GetMapping("/{receiptId}")

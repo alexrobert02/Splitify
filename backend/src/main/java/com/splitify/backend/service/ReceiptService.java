@@ -72,14 +72,18 @@ public class ReceiptService {
             .stream().map(this::toDto).toList();
     }
 
-    public List<ReceiptDto> getGroupReceipts(UUID groupId, UUID currentUserId) {
+    public List<ReceiptDto> getGroupReceipts(UUID groupId, UUID currentUserId, boolean unpaidOnly) {
         Group group = groupRepository.findById(groupId)
             .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
         if (group.getMembers().stream().noneMatch(u -> u.getId().equals(currentUserId))) {
             throw new BadRequestException("You are not a member of this group");
         }
         return receiptRepository.findByGroupIdOrderByScannedAtDesc(groupId)
-            .stream().map(this::toDto).toList();
+            .stream()
+            .filter(r -> !unpaidOnly || (r.isFinalized() &&
+                !paymentRepository.existsByReceiptIdAndPayerId(r.getId(), currentUserId)))
+            .map(this::toDto)
+            .toList();
     }
 
     public ReceiptDto getReceipt(UUID receiptId, UUID currentUserId) {

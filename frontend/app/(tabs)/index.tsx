@@ -434,11 +434,11 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [manualVisible, setManualVisible] = useState(false);
   const [filterUnpaid, setFilterUnpaid] = useState(false);
 
-  const loadData = useCallback(async (isRefresh = false) => {
+  const loadData = useCallback(async (isRefresh = false, unpaid = false) => {
     try {
       const [g, r] = await Promise.all([
         api.groups.get(id),
-        api.receipts.listByGroup(id),
+        api.receipts.listByGroup(id, unpaid),
       ]);
       setGroup(g);
       setReceipts(r.sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime()));
@@ -451,8 +451,8 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   }, [id]);
 
   useFocusEffect(useCallback(() => {
-    void loadData();
-  }, [loadData]));
+    void loadData(false, filterUnpaid);
+  }, [loadData, filterUnpaid]));
 
   const handleAddMember = async () => {
     if (!email.trim()) return;
@@ -510,9 +510,6 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   if (!group) return null;
 
   const isOwner = group.createdById === user?.id;
-  const displayedReceipts = filterUnpaid
-    ? receipts.filter(r => r.status === 'PENDING_PAYMENT')
-    : receipts;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -534,14 +531,14 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
         onPress={() => setFilterUnpaid(v => !v)}
       >
         <Ionicons name="time-outline" size={14} color={filterUnpaid ? '#fff' : Colors.textSecondary} />
-        <Text style={[styles.filterChipText, filterUnpaid && styles.filterChipTextActive]}>Pending payment</Text>
+        <Text style={[styles.filterChipText, filterUnpaid && styles.filterChipTextActive]}>My unpaid</Text>
       </TouchableOpacity>
 
       <ScrollView
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void loadData(true); }} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void loadData(true, filterUnpaid); }} tintColor={Colors.primary} />}
       >
-        {displayedReceipts.length === 0 && receipts.length === 0 ? (
+        {receipts.length === 0 && !filterUnpaid ? (
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={48} color={Colors.border} />
             <Text style={styles.emptyText}>No receipts in this group yet</Text>
@@ -550,13 +547,13 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
               <Text style={styles.scanGroupBtnText}>Scan Receipt</Text>
             </TouchableOpacity>
           </View>
-        ) : displayedReceipts.length === 0 ? (
+        ) : receipts.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="checkmark-circle-outline" size={48} color={Colors.border} />
-            <Text style={styles.emptyText}>No pending payments</Text>
+            <Text style={styles.emptyText}>You&#39;re all settled up!</Text>
           </View>
         ) : (
-          displayedReceipts.map(r => (
+          receipts.map(r => (
             <ReceiptCard key={r.id} receipt={r} onDelete={() => handleDeleteReceipt(r.id)} />
           ))
         )}

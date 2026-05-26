@@ -109,8 +109,8 @@ export const api = {
 
   receipts: {
     list: () => request<ReceiptDto[]>('/api/receipts'),
-    listByGroup: (groupId: string) =>
-      request<ReceiptDto[]>(`/api/receipts/group/${groupId}`),
+    listByGroup: (groupId: string, unpaidOnly?: boolean) =>
+      request<ReceiptDto[]>(`/api/receipts/group/${groupId}${unpaidOnly ? '?unpaidOnly=true' : ''}`),
     get: (id: string) => request<ReceiptDto>(`/api/receipts/${id}`),
     createReceipt: (title: string, groupId?: string, category?: string) => {
       const params = new URLSearchParams();
