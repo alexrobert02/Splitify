@@ -34,21 +34,10 @@ function LoadingView() {
   );
 }
 
-const CATEGORY_COLOR: Record<string, string> = {
-  GROCERIES:     '#10B981',
-  DINING:        '#F97316',
-  TRANSPORT:     '#3B82F6',
-  ENTERTAINMENT: '#A855F7',
-  SHOPPING:      '#EC4899',
-  UTILITIES:     '#F59E0B',
-  HEALTH:        '#EF4444',
-  OTHER:         '#6B7280',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING_REVIEW:     'Needs review',
-  PENDING_ASSIGNMENT: 'Assign items',
-  FINALIZED:          'Finalized',
+const STATUS_COLOR: Record<string, string> = {
+  PENDING_REVIEW:     '#F59E0B',
+  PENDING_ASSIGNMENT: '#3B82F6',
+  FINALIZED:          '#10B981',
 };
 
 function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () => void }) {
@@ -56,14 +45,14 @@ function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () 
   const destination = receipt.status === 'PENDING_REVIEW'
     ? `/receipt/review?id=${receipt.id}`
     : `/receipt/${receipt.id}`;
-  const categoryColor = CATEGORY_COLOR[receipt.category] ?? '#6B7280';
+  const statusColor = STATUS_COLOR[receipt.status] ?? STATUS_COLOR.FINALIZED;
   return (
     <TouchableOpacity
       style={styles.receiptCard}
       onPress={() => router.push(destination as any)}
       activeOpacity={0.7}
     >
-      <View style={[styles.statusStrip, { backgroundColor: categoryColor }]} />
+      <View style={[styles.statusStrip, { backgroundColor: statusColor }]} />
       <View style={styles.receiptLeft}>
         <View style={[styles.receiptIcon, { backgroundColor: Colors.primaryLight }]}>
           <Ionicons name="receipt" size={18} color={Colors.primary} />
@@ -71,7 +60,6 @@ function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () 
         <View style={styles.receiptInfo}>
           <Text style={styles.receiptTitle} numberOfLines={1}>{receipt.title || 'Untitled'}</Text>
           <Text style={styles.receiptDate}>{date}{receipt.scannedByName ? ` · ${receipt.scannedByName}` : ''}</Text>
-          <Text style={styles.receiptStatusText}>{STATUS_LABEL[receipt.status]}</Text>
         </View>
       </View>
       <View style={styles.receiptRight}>
@@ -697,7 +685,6 @@ const styles = StyleSheet.create({
   receiptInfo: { flex: 1 },
   receiptTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
   receiptDate: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
-  receiptStatusText: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
   receiptRight: { alignItems: 'flex-end', gap: 6 },
   receiptAmt: { fontSize: 14, fontWeight: '700', color: Colors.text },
 
