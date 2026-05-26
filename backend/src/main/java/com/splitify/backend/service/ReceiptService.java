@@ -231,6 +231,10 @@ public class ReceiptService {
             User payer = findUser(payerId);
             paymentRepository.save(Payment.builder().receipt(receipt).payer(payer).build());
         }
+        if (allParticipantsPaid(receiptId, receipt)) {
+            receipt.setStatus(ReceiptStatus.FINALIZED);
+            receiptRepository.save(receipt);
+        }
     }
 
     @Transactional
@@ -243,12 +247,18 @@ public class ReceiptService {
             throw new BadRequestException("All items must be assigned before finalizing");
         }
         receipt.setFinalized(true);
-        receipt.setStatus(ReceiptStatus.FINALIZED);
+        receipt.setStatus(ReceiptStatus.PENDING_PAYMENT);
         Receipt saved = receiptRepository.save(receipt);
 
         // Scanner paid upfront, so auto-mark them as paid
         if (!paymentRepository.existsByReceiptIdAndPayerId(receiptId, currentUserId)) {
             paymentRepository.save(Payment.builder().receipt(saved).payer(saved.getScannedBy()).build());
+        }
+
+        // If the scanner is the only participant, settle immediately
+        if (allParticipantsPaid(receiptId, saved)) {
+            saved.setStatus(ReceiptStatus.FINALIZED);
+            receiptRepository.save(saved);
         }
 
         // Notify each participant (except scanner) that payment is requested
@@ -416,6 +426,16 @@ public class ReceiptService {
         if (!receipt.getScannedBy().getId().equals(userId)) {
             throw new BadRequestException("Only the receipt owner can mark payments");
         }
+    }
+
+    private boolean allParticipantsPaid(UUID receiptId, Receipt receipt) {
+        Set<UUID> assigneeIds = receipt.getItems().stream()
+            .flatMap(item -> item.getAssignments().stream())
+            .map(a -> a.getUser().getId())
+            .collect(Collectors.toSet());
+        Set<UUID> paidIds = paymentRepository.findByReceiptId(receiptId)
+            .stream().map(p -> p.getPayer().getId()).collect(Collectors.toSet());
+        return !assigneeIds.isEmpty() && paidIds.containsAll(assigneeIds);
     }
 
     // ---- DTO mapping ----

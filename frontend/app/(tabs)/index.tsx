@@ -37,6 +37,7 @@ function LoadingView() {
 const STATUS_COLOR: Record<string, string> = {
   PENDING_REVIEW:     '#F59E0B',
   PENDING_ASSIGNMENT: '#3B82F6',
+  PENDING_PAYMENT:    '#EF4444',
   FINALIZED:          '#10B981',
 };
 
@@ -405,7 +406,7 @@ function SoloView({ onBack }: { onBack: () => void }) {
 
       <View style={styles.fabRow}>
         <TouchableOpacity style={styles.fabSecondary} onPress={() => setManualVisible(true)}>
-          <Ionicons name="create-outline" size={22} color={Colors.primary} />
+          <Ionicons name="add-outline" size={22} color={Colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.fab} onPress={() => router.push('/receipt/scan' as any)}>
           <Ionicons name="camera" size={22} color="#fff" />
@@ -546,7 +547,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
 
       <View style={styles.fabRow}>
         <TouchableOpacity style={styles.fabSecondary} onPress={() => setManualVisible(true)}>
-          <Ionicons name="create-outline" size={22} color={Colors.primary} />
+          <Ionicons name="add-outline" size={22} color={Colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.fab} onPress={() => router.push(`/receipt/scan?groupId=${id}` as any)}>
           <Ionicons name="camera" size={22} color="#fff" />
