@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import { Colors } from '@/constants/Colors';
 import type { ReceiptDto, ReceiptItemDto } from '@/types';
+import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
 
 type EditState = { name: string; quantity: string; unitPrice: string };
 
@@ -35,8 +36,22 @@ export default function ReviewScreen() {
   const [addState, setAddState] = useState<EditState>(emptyEdit());
   const [adding, setAdding] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
+  const [savingCurrency, setSavingCurrency] = useState(false);
 
   const busy = editingId !== null || showAddForm;
+
+  const handleCurrencyChange = async (code: string) => {
+    setSavingCurrency(true);
+    try {
+      const updated = await api.receipts.update(id, { currency: code });
+      setReceipt(updated);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSavingCurrency(false);
+    }
+  };
 
   const handleConfirm = async () => {
     setConfirming(true);
@@ -245,11 +260,31 @@ export default function ReviewScreen() {
           )}
 
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>
-              {currency} {total.toFixed(2)}
-            </Text>
+            <View style={styles.totalLeft}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <TouchableOpacity
+                style={styles.currencyBtn}
+                onPress={() => setCurrencyPickerVisible(true)}
+                disabled={savingCurrency || busy}
+              >
+                {savingCurrency
+                  ? <ActivityIndicator size="small" color={Colors.primary} />
+                  : <>
+                      <Text style={styles.currencyBtnText}>{currency}</Text>
+                      <Ionicons name="swap-horizontal" size={13} color={Colors.primary} />
+                    </>
+                }
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.totalValue}>{total.toFixed(2)}</Text>
           </View>
+
+          <CurrencyPickerModal
+            visible={currencyPickerVisible}
+            selected={currency}
+            onSelect={handleCurrencyChange}
+            onClose={() => setCurrencyPickerVisible(false)}
+          />
         </ScrollView>
 
         <View style={styles.footer}>
@@ -445,8 +480,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingTop: 4,
   },
+  totalLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   totalLabel: { fontSize: 15, fontWeight: '600', color: Colors.textSecondary },
   totalValue: { fontSize: 18, fontWeight: '800', color: Colors.text },
+  currencyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  currencyBtnText: { fontSize: 13, fontWeight: '700', color: Colors.primary },
   footer: {
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,

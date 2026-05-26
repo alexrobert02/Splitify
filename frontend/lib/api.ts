@@ -62,9 +62,14 @@ export const api = {
       }),
   },
 
+  currency: {
+    rates: (base: string) =>
+      request<Record<string, number>>(`/api/currency/rates?base=${encodeURIComponent(base)}`),
+  },
+
   users: {
     me: () => request<UserDto>('/api/users/me'),
-    update: (data: { name?: string; revolutTag?: string }) =>
+    update: (data: { name?: string; revolutTag?: string; preferredCurrency?: string }) =>
       request<UserDto>('/api/users/me', {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -112,17 +117,19 @@ export const api = {
     listByGroup: (groupId: string, unpaidOnly?: boolean) =>
       request<ReceiptDto[]>(`/api/receipts/group/${groupId}${unpaidOnly ? '?unpaidOnly=true' : ''}`),
     get: (id: string) => request<ReceiptDto>(`/api/receipts/${id}`),
-    createReceipt: (title: string, groupId?: string, category?: string) => {
+    createReceipt: (title: string, groupId?: string, category?: string, currency?: string) => {
       const params = new URLSearchParams();
       params.append('title', title);
       if (groupId) params.append('groupId', groupId);
       if (category) params.append('category', category);
+      if (currency) params.append('currency', currency);
       return request<ReceiptDto>(`/api/receipts/create?${params}`, { method: 'POST' });
     },
     scan: async (
       imageUri: string,
       title: string,
-      groupId?: string
+      groupId?: string,
+      currency?: string
     ): Promise<ReceiptDto> => {
       const token = await storage.getToken();
       const formData = new FormData();
@@ -133,6 +140,7 @@ export const api = {
       formData.append('image', { uri: imageUri, name: filename, type: mimeType } as any);
       formData.append('title', title);
       if (groupId) formData.append('groupId', groupId);
+      if (currency) formData.append('currency', currency);
 
       const response = await fetch(`${BASE_URL}/api/receipts/scan`, {
         method: 'POST',

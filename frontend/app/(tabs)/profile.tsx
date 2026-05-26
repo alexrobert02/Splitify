@@ -17,6 +17,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { Colors } from '@/constants/Colors';
+import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
 
 export default function ProfileScreen() {
   const { user, logout, refreshUser } = useAuth();
@@ -26,6 +27,8 @@ export default function ProfileScreen() {
   const [revolutTag, setRevolutTag] = useState(user?.revolutTag ?? '');
   const [savingName, setSavingName] = useState(false);
   const [savingRevolut, setSavingRevolut] = useState(false);
+  const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
+  const [savingCurrency, setSavingCurrency] = useState(false);
 
   const handleSaveName = async () => {
     if (!name.trim()) return;
@@ -51,6 +54,18 @@ export default function ProfileScreen() {
       Alert.alert('Error', e.message);
     } finally {
       setSavingRevolut(false);
+    }
+  };
+
+  const handleSaveCurrency = async (code: string) => {
+    setSavingCurrency(true);
+    try {
+      await api.users.update({ preferredCurrency: code });
+      await refreshUser();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSavingCurrency(false);
     }
   };
 
@@ -189,8 +204,37 @@ export default function ProfileScreen() {
               </View>
             )}
 
+            <View style={styles.separator} />
+
+            {/* Preferred currency */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setCurrencyPickerVisible(true)}
+              disabled={savingCurrency}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: '#ECFDF5' }]}>
+                  {savingCurrency
+                    ? <ActivityIndicator size="small" color="#10B981" />
+                    : <Ionicons name="globe-outline" size={18} color="#10B981" />}
+                </View>
+                <View>
+                  <Text style={styles.menuText}>Preferred Currency</Text>
+                  <Text style={styles.menuSub}>{user?.preferredCurrency ?? 'RON'}</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+            </TouchableOpacity>
+
           </View>
         </View>
+
+        <CurrencyPickerModal
+          visible={currencyPickerVisible}
+          selected={user?.preferredCurrency ?? 'RON'}
+          onSelect={handleSaveCurrency}
+          onClose={() => setCurrencyPickerVisible(false)}
+        />
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={Colors.error} />

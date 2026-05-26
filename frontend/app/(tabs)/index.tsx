@@ -21,6 +21,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/Colors';
 import type { GroupDto, UserDto, ReceiptDto } from '@/types';
+import { CurrencyPickerModal, CurrencySelector } from '@/components/CurrencyPickerModal';
 
 type ActiveView = { type: 'picker' } | { type: 'solo' } | { type: 'group'; id: string };
 
@@ -269,17 +270,20 @@ function CreateManualModal({
   groupId?: string;
   onClose: () => void;
 }) {
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<CategoryValue | null>(null);
+  const [currency, setCurrency] = useState<string>(user?.preferredCurrency ?? 'RON');
+  const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const reset = () => { setTitle(''); setCategory(null); };
+  const reset = () => { setTitle(''); setCategory(null); setCurrency(user?.preferredCurrency ?? 'RON'); };
 
   const handleCreate = async () => {
     if (!title.trim() || !category) return;
     setCreating(true);
     try {
-      const receipt = await api.receipts.createReceipt(title.trim(), groupId, category);
+      const receipt = await api.receipts.createReceipt(title.trim(), groupId, category, currency);
       onClose();
       reset();
       router.push(`/receipt/review?id=${receipt.id}` as any);
@@ -321,6 +325,11 @@ function CreateManualModal({
               );
             })}
           </ScrollView>
+          <CurrencySelector
+            label="Currency"
+            value={currency}
+            onPress={() => setCurrencyPickerVisible(true)}
+          />
           <View style={styles.modalActions}>
             <TouchableOpacity style={styles.cancelBtn} onPress={() => { onClose(); reset(); }}>
               <Text style={styles.cancelText}>Cancel</Text>
@@ -338,6 +347,12 @@ function CreateManualModal({
           </View>
         </View>
       </KeyboardAvoidingView>
+      <CurrencyPickerModal
+        visible={currencyPickerVisible}
+        selected={currency}
+        onSelect={setCurrency}
+        onClose={() => setCurrencyPickerVisible(false)}
+      />
     </Modal>
   );
 }

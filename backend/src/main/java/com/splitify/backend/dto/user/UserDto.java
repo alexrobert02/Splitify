@@ -16,4 +16,5 @@ public class UserDto {
     private String name;
     private LocalDateTime createdAt;
     private String revolutTag;
+    private String preferredCurrency;
 }

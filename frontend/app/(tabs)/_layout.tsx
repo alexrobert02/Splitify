@@ -80,10 +80,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="groups"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
         name="stats"
         options={{
           title: 'Stats',

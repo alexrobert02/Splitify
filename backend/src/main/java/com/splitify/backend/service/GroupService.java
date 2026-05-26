@@ -116,7 +116,7 @@ public class GroupService {
 
     private GroupDto toDto(Group group) {
         List<UserDto> memberDtos = group.getMembers().stream()
-            .map(u -> new UserDto(u.getId(), u.getEmail(), u.getName(), null, u.getRevolutTag()))
+            .map(UserService::toDto)
             .toList();
 
         return new GroupDto(

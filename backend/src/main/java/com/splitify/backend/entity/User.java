@@ -34,6 +34,9 @@ public class User {
     @Column(name = "revolut_tag")
     private String revolutTag;
 
+    @Column(name = "preferred_currency", length = 3)
+    private String preferredCurrency = "RON";
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "user_push_tokens",

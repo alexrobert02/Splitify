@@ -38,6 +38,9 @@ public class UserService {
         if (request.getRevolutTag() != null) {
             user.setRevolutTag(request.getRevolutTag().isBlank() ? null : request.getRevolutTag().trim());
         }
+        if (StringUtils.hasText(request.getPreferredCurrency())) {
+            user.setPreferredCurrency(request.getPreferredCurrency().toUpperCase());
+        }
 
         return toDto(userRepository.save(user));
     }
@@ -70,6 +73,7 @@ public class UserService {
     }
 
     public static UserDto toDto(User user) {
-        return new UserDto(user.getId(), user.getEmail(), user.getName(), user.getCreatedAt(), user.getRevolutTag());
+        return new UserDto(user.getId(), user.getEmail(), user.getName(), user.getCreatedAt(),
+                user.getRevolutTag(), user.getPreferredCurrency());
     }
 }

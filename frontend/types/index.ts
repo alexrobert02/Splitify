@@ -10,6 +10,7 @@ export interface UserDto {
   email: string;
   name: string;
   revolutTag?: string;
+  preferredCurrency?: string;
 }
 
 export interface GroupDto {

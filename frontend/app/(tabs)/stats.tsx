@@ -16,6 +16,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/Colors';
 import type { ReceiptCategory } from '@/types';
+import { useCurrencyRates } from '@/lib/useCurrencyRates';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -138,6 +139,8 @@ function CategoryRow({ stat, maxAmount, currency }: { stat: CategoryStat; maxAmo
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function StatsScreen() {
   const { user } = useAuth();
+  const preferredCurrency = user?.preferredCurrency ?? 'RON';
+  const { convert, loading: ratesLoading } = useCurrencyRates(preferredCurrency);
   const [entries, setEntries] = useState<PaidEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -189,7 +192,7 @@ export default function StatsScreen() {
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
-  const { total, currency, byCategory } = useMemo(() => {
+  const { total, byCategory, isMixed } = useMemo(() => {
     const filtered = entries.filter(e => {
       const d = new Date(e.scannedAt);
       if (range.start && d < range.start) return false;
@@ -197,12 +200,14 @@ export default function StatsScreen() {
       return true;
     });
 
-    const currency = filtered[0]?.currency ?? entries[0]?.currency ?? 'RON';
-    const catMap = new Map<ReceiptCategory, { amount: number; count: number }>();
+    const currencies = new Set(filtered.map(e => e.currency));
+    const mixed = currencies.size > 1 || (currencies.size === 1 && !currencies.has(preferredCurrency));
 
+    const catMap = new Map<ReceiptCategory, { amount: number; count: number }>();
     filtered.forEach(e => {
+      const converted = convert(e.amount, e.currency);
       const prev = catMap.get(e.category) ?? { amount: 0, count: 0 };
-      catMap.set(e.category, { amount: prev.amount + e.amount, count: prev.count + 1 });
+      catMap.set(e.category, { amount: prev.amount + converted, count: prev.count + 1 });
     });
 
     const byCategory: CategoryStat[] = [];
@@ -211,12 +216,12 @@ export default function StatsScreen() {
 
     return {
       total: byCategory.reduce((s, c) => s + c.amount, 0),
-      currency,
       byCategory,
+      isMixed: mixed,
     };
-  }, [entries, range]);
+  }, [entries, range, convert, preferredCurrency]);
 
-  if (loading) {
+  if (loading || ratesLoading) {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator size="large" color={Colors.primary} />
@@ -304,8 +309,11 @@ export default function StatsScreen() {
           </View>
           <View>
             <Text style={styles.totalLabel}>Total Paid</Text>
-            <Text style={styles.totalAmount}>{currency} {total.toFixed(2)}</Text>
-            <Text style={styles.totalSub}>{receiptCount} receipt{receiptCount !== 1 ? 's' : ''}</Text>
+            <Text style={styles.totalAmount}>{preferredCurrency} {total.toFixed(2)}</Text>
+            <Text style={styles.totalSub}>
+              {receiptCount} receipt{receiptCount !== 1 ? 's' : ''}
+              {isMixed ? ' · converted' : ''}
+            </Text>
           </View>
         </View>
 
@@ -324,7 +332,7 @@ export default function StatsScreen() {
                 key={cat.category}
                 stat={cat}
                 maxAmount={byCategory[0].amount}
-                currency={currency}
+                currency={preferredCurrency}
               />
             ))}
           </View>

@@ -29,10 +29,11 @@ public class ReceiptController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam String title,
             @RequestParam(required = false) UUID groupId,
-            @RequestParam(required = false) String category) {
-        log.info("CREATE receipt title='{}' groupId={} category={}", title, groupId, category);
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String currency) {
+        log.info("CREATE receipt title='{}' groupId={} category={} currency={}", title, groupId, category, currency);
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(receiptService.createManualReceipt(currentUserId(userDetails), title, groupId, category));
+            .body(receiptService.createManualReceipt(currentUserId(userDetails), title, groupId, category, currency));
     }
 
     @PostMapping(value = "/scan", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -45,6 +46,15 @@ public class ReceiptController {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(receiptService.scanReceipt(currentUserId(userDetails), image, title,
                 groupId != null ? UUID.fromString(groupId) : null));
+    }
+
+    @PutMapping("/{receiptId}")
+    public ResponseEntity<ReceiptDto> updateReceipt(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID receiptId,
+            @RequestBody UpdateReceiptRequest request) {
+        log.info("UPDATE receipt receiptId={}", receiptId);
+        return ResponseEntity.ok(receiptService.updateReceipt(receiptId, currentUserId(userDetails), request));
     }
 
     @GetMapping

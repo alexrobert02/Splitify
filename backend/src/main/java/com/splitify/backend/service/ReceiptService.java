@@ -283,6 +283,19 @@ public class ReceiptService {
     }
 
     @Transactional
+    public ReceiptDto updateReceipt(UUID receiptId, UUID currentUserId, UpdateReceiptRequest request) {
+        Receipt receipt = findReceipt(receiptId);
+        assertAccess(receipt, currentUserId);
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
+            receipt.setTitle(request.getTitle().trim());
+        }
+        if (request.getCurrency() != null && !request.getCurrency().isBlank()) {
+            receipt.setCurrency(request.getCurrency().toUpperCase());
+        }
+        return toDto(receiptRepository.save(receipt));
+    }
+
+    @Transactional
     public void deleteReceipt(UUID receiptId, UUID currentUserId) {
         Receipt receipt = findReceipt(receiptId);
         assertAccess(receipt, currentUserId);
@@ -292,7 +305,7 @@ public class ReceiptService {
     // ---- helpers ----
 
     @Transactional
-    public ReceiptDto createManualReceipt(UUID currentUserId, String title, UUID groupId, String category) {
+    public ReceiptDto createManualReceipt(UUID currentUserId, String title, UUID groupId, String category, String currency) {
         User user = findUser(currentUserId);
 
         ReceiptCategory receiptCategory = ReceiptCategory.OTHER;
@@ -302,10 +315,13 @@ public class ReceiptService {
             } catch (IllegalArgumentException ignored) {}
         }
 
+        String resolvedCurrency = currency != null ? currency.toUpperCase()
+                : (user.getPreferredCurrency() != null ? user.getPreferredCurrency() : "RON");
+
         Receipt receipt = Receipt.builder()
             .title(title)
             .scannedBy(user)
-            .currency("RON")
+            .currency(resolvedCurrency)
             .totalAmount(BigDecimal.ZERO)
             .category(receiptCategory)
             .status(ReceiptStatus.PENDING_REVIEW)
