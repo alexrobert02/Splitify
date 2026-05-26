@@ -53,10 +53,10 @@ export default function ScanScreen() {
   };
 
   const handleUpload = async () => {
-    if (!imageUri) return;
+    if (!imageUri || !title.trim()) return;
     setUploading(true);
     try {
-      const receipt = await api.receipts.scan(imageUri, title.trim() || undefined, groupId);
+      const receipt = await api.receipts.scan(imageUri, title.trim(), groupId);
       router.replace(`/receipt/review?id=${receipt.id}` as any);
     } catch (e: any) {
       Alert.alert('Upload failed', e.message ?? 'Please try again');
@@ -105,7 +105,7 @@ export default function ScanScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Title (optional)</Text>
+            <Text style={styles.label}>Title</Text>
             <TextInput
               style={styles.input}
               placeholder="e.g. Dinner at Pizza Place"
@@ -125,9 +125,9 @@ export default function ScanScreen() {
 
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.uploadBtn, (!imageUri || uploading) && styles.btnDisabled]}
+            style={[styles.uploadBtn, (!imageUri || !title.trim() || uploading) && styles.btnDisabled]}
             onPress={handleUpload}
-            disabled={!imageUri || uploading}
+            disabled={!imageUri || !title.trim() || uploading}
           >
             {uploading ? (
               <ActivityIndicator color="#fff" />

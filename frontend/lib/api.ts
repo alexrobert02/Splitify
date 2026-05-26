@@ -112,16 +112,16 @@ export const api = {
     listByGroup: (groupId: string) =>
       request<ReceiptDto[]>(`/api/receipts/group/${groupId}`),
     get: (id: string) => request<ReceiptDto>(`/api/receipts/${id}`),
-    createReceipt: (title?: string, groupId?: string, category?: string) => {
+    createReceipt: (title: string, groupId?: string, category?: string) => {
       const params = new URLSearchParams();
-      if (title) params.append('title', title);
+      params.append('title', title);
       if (groupId) params.append('groupId', groupId);
       if (category) params.append('category', category);
       return request<ReceiptDto>(`/api/receipts/create?${params}`, { method: 'POST' });
     },
     scan: async (
       imageUri: string,
-      title?: string,
+      title: string,
       groupId?: string
     ): Promise<ReceiptDto> => {
       const token = await storage.getToken();
@@ -131,7 +131,7 @@ export const api = {
       const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
 
       formData.append('image', { uri: imageUri, name: filename, type: mimeType } as any);
-      if (title) formData.append('title', title);
+      formData.append('title', title);
       if (groupId) formData.append('groupId', groupId);
 
       const response = await fetch(`${BASE_URL}/api/receipts/scan`, {

@@ -27,7 +27,7 @@ public class ReceiptController {
     @PostMapping("/create")
     public ResponseEntity<ReceiptDto> createReceipt(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(required = false) String title,
+            @RequestParam String title,
             @RequestParam(required = false) UUID groupId,
             @RequestParam(required = false) String category) {
         log.info("CREATE receipt title='{}' groupId={} category={}", title, groupId, category);
@@ -39,7 +39,7 @@ public class ReceiptController {
     public ResponseEntity<ReceiptDto> scanReceipt(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestPart("image") MultipartFile image,
-            @RequestPart(value = "title", required = false) String title,
+            @RequestPart("title") String title,
             @RequestPart(value = "groupId", required = false) String groupId) {
         log.info("SCAN receipt title='{}' groupId={} imageSize={}B", title, groupId, image.getSize());
         return ResponseEntity.status(HttpStatus.CREATED)

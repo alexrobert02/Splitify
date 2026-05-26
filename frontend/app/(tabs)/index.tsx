@@ -276,10 +276,10 @@ function CreateManualModal({
   const reset = () => { setTitle(''); setCategory(null); };
 
   const handleCreate = async () => {
-    if (!category) return;
+    if (!title.trim() || !category) return;
     setCreating(true);
     try {
-      const receipt = await api.receipts.createReceipt(title.trim() || undefined, groupId, category);
+      const receipt = await api.receipts.createReceipt(title.trim(), groupId, category);
       onClose();
       reset();
       router.push(`/receipt/review?id=${receipt.id}` as any);
@@ -296,7 +296,7 @@ function CreateManualModal({
         <View style={styles.modalSheet}>
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>New Receipt</Text>
-          <Text style={styles.label}>Title (optional)</Text>
+          <Text style={styles.label}>Title</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. Dinner at Pizza Place"
@@ -326,9 +326,9 @@ function CreateManualModal({
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.primaryBtn, (creating || !category) && styles.btnDisabled]}
+              style={[styles.primaryBtn, (creating || !title.trim() || !category) && styles.btnDisabled]}
               onPress={handleCreate}
-              disabled={creating || !category}
+              disabled={creating || !title.trim() || !category}
             >
               {creating
                 ? <ActivityIndicator color="#fff" size="small" />
@@ -432,6 +432,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
   const [manualVisible, setManualVisible] = useState(false);
+  const [filterUnpaid, setFilterUnpaid] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     try {
@@ -509,6 +510,9 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   if (!group) return null;
 
   const isOwner = group.createdById === user?.id;
+  const displayedReceipts = filterUnpaid
+    ? receipts.filter(r => r.status === 'PENDING_PAYMENT')
+    : receipts;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -525,11 +529,19 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity
+        style={[styles.filterChip, filterUnpaid && styles.filterChipActive]}
+        onPress={() => setFilterUnpaid(v => !v)}
+      >
+        <Ionicons name="time-outline" size={14} color={filterUnpaid ? '#fff' : Colors.textSecondary} />
+        <Text style={[styles.filterChipText, filterUnpaid && styles.filterChipTextActive]}>Pending payment</Text>
+      </TouchableOpacity>
+
       <ScrollView
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void loadData(true); }} tintColor={Colors.primary} />}
       >
-        {receipts.length === 0 ? (
+        {displayedReceipts.length === 0 && receipts.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={48} color={Colors.border} />
             <Text style={styles.emptyText}>No receipts in this group yet</Text>
@@ -538,8 +550,13 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
               <Text style={styles.scanGroupBtnText}>Scan Receipt</Text>
             </TouchableOpacity>
           </View>
+        ) : displayedReceipts.length === 0 ? (
+          <View style={styles.empty}>
+            <Ionicons name="checkmark-circle-outline" size={48} color={Colors.border} />
+            <Text style={styles.emptyText}>No pending payments</Text>
+          </View>
         ) : (
-          receipts.map(r => (
+          displayedReceipts.map(r => (
             <ReceiptCard key={r.id} receipt={r} onDelete={() => handleDeleteReceipt(r.id)} />
           ))
         )}
@@ -711,6 +728,24 @@ const styles = StyleSheet.create({
   roleText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
   ownerText: { color: Colors.primary },
 
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 5,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  filterChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
+  filterChipTextActive: { color: '#fff' },
   categoryScroll: { marginBottom: 16 },
   categoryPill: {
     flexDirection: 'row',
