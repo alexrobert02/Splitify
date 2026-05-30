@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+﻿import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import React from "react";
@@ -94,6 +94,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="recurring"
+        options={{
+          title: 'Recurring',
+          tabBarIcon: ({ focused }) => <TabIcon name="repeat" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -103,3 +110,4 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+

@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/Colors';
+import { CATEGORY_CONFIG } from '@/constants/categories';
 import type { GroupDto, UserDto, ReceiptDto } from '@/types';
 import { CurrencyPickerModal, CurrencySelector } from '@/components/CurrencyPickerModal';
 
@@ -48,6 +49,7 @@ function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () 
     ? `/receipt/review?id=${receipt.id}`
     : `/receipt/${receipt.id}`;
   const statusColor = STATUS_COLOR[receipt.status] ?? STATUS_COLOR.FINALIZED;
+  const catCfg = CATEGORY_CONFIG[receipt.category] ?? CATEGORY_CONFIG.OTHER;
   return (
     <TouchableOpacity
       style={styles.receiptCard}
@@ -56,8 +58,8 @@ function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () 
     >
       <View style={[styles.statusStrip, { backgroundColor: statusColor }]} />
       <View style={styles.receiptLeft}>
-        <View style={[styles.receiptIcon, { backgroundColor: Colors.primaryLight }]}>
-          <Ionicons name="receipt" size={18} color={Colors.primary} />
+        <View style={[styles.receiptIcon, { backgroundColor: catCfg.bgColor }]}>
+          <Ionicons name={catCfg.icon as any} size={18} color={catCfg.color} />
         </View>
         <View style={styles.receiptInfo}>
           <Text style={styles.receiptTitle} numberOfLines={1}>{receipt.title || 'Untitled'}</Text>

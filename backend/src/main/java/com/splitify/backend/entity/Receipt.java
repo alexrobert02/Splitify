@@ -48,12 +48,12 @@ public class Receipt {
     @Enumerated(EnumType.STRING)
     private ReceiptCategory category;
 
-    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Column(nullable = false)
     @Builder.Default
     private boolean finalized = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "varchar(30) default 'PENDING_REVIEW'")
+    @Column(nullable = false, length = 30)
     @Builder.Default
     private ReceiptStatus status = ReceiptStatus.PENDING_REVIEW;
 

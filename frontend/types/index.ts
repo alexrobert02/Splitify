@@ -92,6 +92,32 @@ export interface AssigneeEntry {
   splitValue?: number;
 }
 
+export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+export interface RecurringParticipantDto {
+  userId: string;
+  userName: string;
+  splitType: SplitType;
+  splitValue: number | null;
+}
+
+export interface RecurringExpenseDto {
+  id: string;
+  title: string;
+  amount: number;
+  currency: string;
+  category: ReceiptCategory;
+  createdById: string;
+  createdByName: string;
+  groupId: string | null;
+  groupName: string | null;
+  frequency: RecurrenceFrequency;
+  nextRunAt: string;
+  active: boolean;
+  participants: RecurringParticipantDto[];
+  createdAt: string;
+}
+
 export type NotificationType = 'GROUP_ADDED' | 'PAYMENT_REQUESTED' | 'PAYMENT_RECEIVED';
 
 export interface NotificationDto {

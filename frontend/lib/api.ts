@@ -8,6 +8,7 @@ import type {
   ReceiptSummaryDto,
   AssigneeEntry,
   NotificationDto,
+  RecurringExpenseDto,
 } from '@/types';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8080';
@@ -186,5 +187,27 @@ export const api = {
     markPaid: (receiptId: string, userId: string) =>
       request<void>(`/api/receipts/${receiptId}/participants/${userId}/pay`, { method: 'POST' }),
     delete: (id: string) => request<void>(`/api/receipts/${id}`, { method: 'DELETE' }),
+  },
+
+  recurring: {
+    list: () => request<RecurringExpenseDto[]>('/api/recurring'),
+    get: (id: string) => request<RecurringExpenseDto>(`/api/recurring/${id}`),
+    create: (data: {
+      title: string;
+      amount: number;
+      currency: string;
+      category?: string;
+      groupId?: string;
+      frequency: string;
+      startDate: string;
+      participants: { userId: string; splitType: string; splitValue?: number }[];
+    }) =>
+      request<RecurringExpenseDto>('/api/recurring', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    toggle: (id: string) =>
+      request<RecurringExpenseDto>(`/api/recurring/${id}/toggle`, { method: 'PUT' }),
+    delete: (id: string) => request<void>(`/api/recurring/${id}`, { method: 'DELETE' }),
   },
 };
