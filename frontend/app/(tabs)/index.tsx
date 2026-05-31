@@ -426,6 +426,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [group, setGroup] = useState<GroupDto | null>(null);
   const [receipts, setReceipts] = useState<ReceiptDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [membersVisible, setMembersVisible] = useState(false);
@@ -436,6 +437,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [filterUnpaid, setFilterUnpaid] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false, unpaid = false) => {
+    if (!isRefresh) setReceiptsLoading(true);
     try {
       const [g, r] = await Promise.all([
         api.groups.get(id),
@@ -446,6 +448,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {
+      setReceiptsLoading(false);
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     }
@@ -529,7 +532,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
 
       <TouchableOpacity
         style={[styles.filterChip, filterUnpaid && styles.filterChipActive]}
-        onPress={() => setFilterUnpaid(v => !v)}
+        onPress={() => { setReceiptsLoading(true); setFilterUnpaid(v => !v); }}
       >
         <Ionicons name="time-outline" size={14} color={filterUnpaid ? '#fff' : Colors.textSecondary} />
         <Text style={[styles.filterChipText, filterUnpaid && styles.filterChipTextActive]}>My unpaid</Text>
@@ -539,7 +542,11 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void loadData(true, filterUnpaid); }} tintColor={Colors.primary} />}
       >
-        {receipts.length === 0 && !filterUnpaid ? (
+        {receiptsLoading && !refreshing ? (
+          <View style={styles.listSpinner}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : receipts.length === 0 && !filterUnpaid ? (
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={48} color={Colors.border} />
             <Text style={styles.emptyText}>No receipts in this group yet</Text>
@@ -704,6 +711,7 @@ const styles = StyleSheet.create({
   receiptRight: { alignItems: 'flex-end', gap: 6 },
   receiptAmt: { fontSize: 14, fontWeight: '700', color: Colors.text },
 
+  listSpinner: { alignItems: 'center', paddingTop: 80 },
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textSecondary },
   emptySub: { fontSize: 14, color: Colors.textMuted, textAlign: 'center' },
