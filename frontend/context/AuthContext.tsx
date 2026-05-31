@@ -37,8 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedToken = await storage.getToken();
         if (savedToken) {
-          setToken(savedToken);
           const freshUser = await api.users.me();
+          setToken(savedToken);
           setUser(freshUser);
           await registerToken();
         }
