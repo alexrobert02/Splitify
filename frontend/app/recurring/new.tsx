@@ -18,12 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { Colors } from '@/constants/Colors';
 import { CurrencyPickerModal, CurrencySelector } from '@/components/CurrencyPickerModal';
-import { CATEGORY_CONFIG } from '@/constants/categories';
+import { CategoryPickerModal, CategorySelector } from '@/components/CategoryPickerModal';
 import { useAuth } from '@/context/AuthContext';
 import type { GroupDto, UserDto, ReceiptCategory, RecurrenceFrequency, SplitType } from '@/types';
-
-const CATEGORIES = (Object.entries(CATEGORY_CONFIG) as [ReceiptCategory, typeof CATEGORY_CONFIG[ReceiptCategory]][])
-  .map(([value, cfg]) => ({ value, label: cfg.label, icon: cfg.icon, color: cfg.color }));
 
 const FREQUENCIES: { value: RecurrenceFrequency; label: string }[] = [
   { value: 'DAILY',   label: 'Daily' },
@@ -53,6 +50,7 @@ export default function NewRecurringScreen() {
   const [currency, setCurrency]       = useState('RON');
   const [currencyModal, setCurrencyModal] = useState(false);
   const [category, setCategory]       = useState<ReceiptCategory>('UTILITIES');
+  const [categoryModal, setCategoryModal] = useState(false);
   const [frequency, setFrequency]     = useState<RecurrenceFrequency>('MONTHLY');
   const [startDate, setStartDate]     = useState(() => new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -184,22 +182,7 @@ export default function NewRecurringScreen() {
           {/* Category */}
           <View style={styles.fieldGroup}>
             <FieldLabel label="Category" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={{ gap: 8 }}>
-              {CATEGORIES.map(c => {
-                const active = category === c.value;
-                return (
-                  <TouchableOpacity
-                    key={c.value}
-                    style={[styles.categoryPill, active && { borderColor: c.color, backgroundColor: c.color + '18' }]}
-                    onPress={() => setCategory(c.value)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name={c.icon as any} size={14} color={active ? c.color : Colors.textMuted} />
-                    <Text style={[styles.categoryPillText, active && { color: c.color }]}>{c.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+            <CategorySelector value={category} onPress={() => setCategoryModal(true)} />
           </View>
 
           {/* Frequency */}
@@ -364,6 +347,12 @@ export default function NewRecurringScreen() {
         onSelect={setCurrency}
         onClose={() => setCurrencyModal(false)}
       />
+      <CategoryPickerModal
+        visible={categoryModal}
+        selected={category}
+        onSelect={setCategory}
+        onClose={() => setCategoryModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -411,18 +400,6 @@ const styles = StyleSheet.create({
   },
 
   categoryScroll: { marginTop: 2 },
-  categoryPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.background,
-  },
-  categoryPillText: { fontSize: 13, fontWeight: '600', color: Colors.textMuted },
 
   groupChip: {
     flexDirection: 'row',

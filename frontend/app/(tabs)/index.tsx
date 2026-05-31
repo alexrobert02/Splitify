@@ -21,8 +21,9 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/Colors';
 import { CATEGORY_CONFIG } from '@/constants/categories';
-import type { GroupDto, UserDto, ReceiptDto } from '@/types';
+import type { GroupDto, UserDto, ReceiptDto, ReceiptCategory } from '@/types';
 import { CurrencyPickerModal, CurrencySelector } from '@/components/CurrencyPickerModal';
+import { CategoryPickerModal, CategorySelector } from '@/components/CategoryPickerModal';
 
 type ActiveView = { type: 'picker' } | { type: 'solo' } | { type: 'group'; id: string };
 
@@ -251,17 +252,7 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
 
 // ─── Manual receipt creation modal ───────────────────────────────────────────
 
-const CATEGORIES = [
-  { value: 'GROCERIES',     label: 'Groceries',     icon: 'basket-outline',              color: '#10B981' },
-  { value: 'DINING',        label: 'Dining',         icon: 'restaurant-outline',          color: '#F97316' },
-  { value: 'TRANSPORT',     label: 'Transport',      icon: 'car-outline',                 color: '#3B82F6' },
-  { value: 'ENTERTAINMENT', label: 'Fun',            icon: 'film-outline',                color: '#A855F7' },
-  { value: 'SHOPPING',      label: 'Shopping',       icon: 'bag-handle-outline',          color: '#EC4899' },
-  { value: 'UTILITIES',     label: 'Utilities',      icon: 'flash-outline',               color: '#F59E0B' },
-  { value: 'HEALTH',        label: 'Health',         icon: 'medkit-outline',              color: '#EF4444' },
-  { value: 'OTHER',         label: 'Other',          icon: 'ellipsis-horizontal-outline', color: '#6B7280' },
-] as const;
-type CategoryValue = typeof CATEGORIES[number]['value'];
+type CategoryValue = ReceiptCategory;
 
 function CreateManualModal({
   visible,
@@ -277,6 +268,7 @@ function CreateManualModal({
   const [category, setCategory] = useState<CategoryValue | null>(null);
   const [currency, setCurrency] = useState<string>(user?.preferredCurrency ?? 'RON');
   const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
+  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const reset = () => { setTitle(''); setCategory(null); setCurrency(user?.preferredCurrency ?? 'RON'); };
@@ -312,21 +304,7 @@ function CreateManualModal({
             autoFocus
           />
           <Text style={styles.label}>Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={{ gap: 8 }}>
-            {CATEGORIES.map(cat => {
-              const active = category === cat.value;
-              return (
-                <TouchableOpacity
-                  key={cat.value}
-                  style={[styles.categoryPill, active && { borderColor: cat.color, backgroundColor: cat.color + '18' }]}
-                  onPress={() => setCategory(cat.value)}
-                >
-                  <Ionicons name={cat.icon as any} size={14} color={active ? cat.color : Colors.textMuted} />
-                  <Text style={[styles.categoryPillText, active && { color: cat.color }]}>{cat.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          <CategorySelector value={category} onPress={() => setCategoryPickerVisible(true)} />
           <CurrencySelector
             label="Currency"
             value={currency}
@@ -354,6 +332,12 @@ function CreateManualModal({
         selected={currency}
         onSelect={setCurrency}
         onClose={() => setCurrencyPickerVisible(false)}
+      />
+      <CategoryPickerModal
+        visible={categoryPickerVisible}
+        selected={category}
+        onSelect={setCategory}
+        onClose={() => setCategoryPickerVisible(false)}
       />
     </Modal>
   );
@@ -760,19 +744,6 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   filterChipText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
   filterChipTextActive: { color: '#fff' },
-  categoryScroll: { marginBottom: 16 },
-  categoryPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.background,
-  },
-  categoryPillText: { fontSize: 13, fontWeight: '600', color: Colors.textMuted },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: Colors.overlay },
   modalSheet: { backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 20 },
