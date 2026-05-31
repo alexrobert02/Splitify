@@ -56,7 +56,8 @@
           "photosPermission": "Splitify needs access to your photos to upload receipts.",
           "cameraPermission": "Splitify needs camera access to scan receipts."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

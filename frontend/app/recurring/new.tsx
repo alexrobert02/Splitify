@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -53,7 +54,8 @@ export default function NewRecurringScreen() {
   const [currencyModal, setCurrencyModal] = useState(false);
   const [category, setCategory]       = useState<ReceiptCategory>('UTILITIES');
   const [frequency, setFrequency]     = useState<RecurrenceFrequency>('MONTHLY');
-  const [startDate, setStartDate]     = useState(() => new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate]     = useState(() => new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [splitType, setSplitType]     = useState<SplitType>('EQUAL');
 
   const [groups, setGroups]               = useState<GroupDto[]>([]);
@@ -116,7 +118,7 @@ export default function NewRecurringScreen() {
         category,
         groupId: selectedGroup?.id,
         frequency,
-        startDate,
+        startDate: startDate.toISOString().split('T')[0],
         participants: participants.map(p => ({
           userId: p.user.id,
           splitType,
@@ -154,7 +156,6 @@ export default function NewRecurringScreen() {
               onChangeText={setTitle}
               placeholder="e.g. Monthly rent"
               placeholderTextColor={Colors.textMuted}
-              autoFocus
             />
           </View>
 
@@ -223,15 +224,24 @@ export default function NewRecurringScreen() {
 
           {/* Start date */}
           <View style={styles.fieldGroup}>
-            <FieldLabel label="Start date (YYYY-MM-DD)" />
-            <TextInput
-              style={styles.input}
-              value={startDate}
-              onChangeText={setStartDate}
-              placeholder="2025-06-01"
-              placeholderTextColor={Colors.textMuted}
-              keyboardType="numbers-and-punctuation"
-            />
+            <FieldLabel label="Start date" />
+            <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)} activeOpacity={0.7}>
+              <Text style={{ color: Colors.text, fontSize: 15 }}>
+                {startDate.toLocaleDateString('en-CA')}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                mode="date"
+                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                value={startDate}
+                minimumDate={new Date()}
+                onChange={(_, date) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (date) setStartDate(date);
+                }}
+              />
+            )}
           </View>
 
           {/* Group */}
