@@ -75,7 +75,15 @@ public class RecurringExpenseService {
         }
         expense.setParticipants(participants);
 
-        return toDto(recurringExpenseRepository.save(expense));
+        RecurringExpense saved = recurringExpenseRepository.save(expense);
+
+        if (!request.getStartDate().isAfter(LocalDate.now())) {
+            createReceiptFromExpense(saved);
+            saved.setNextRunAt(computeNextRunAt(saved.getNextRunAt(), saved.getFrequency()));
+            saved = recurringExpenseRepository.save(saved);
+        }
+
+        return toDto(saved);
     }
 
     public List<RecurringExpenseDto> getMyRecurring(UUID currentUserId) {

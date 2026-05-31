@@ -1,6 +1,10 @@
+import type { ComponentProps } from 'react';
 import type { ReceiptCategory } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
 
-export const CATEGORY_CONFIG: Record<ReceiptCategory, { label: string; icon: string; color: string; bgColor: string }> = {
+type IoniconsName = ComponentProps<typeof Ionicons>['name'];
+
+export const CATEGORY_CONFIG: Record<ReceiptCategory, { label: string; icon: IoniconsName; color: string; bgColor: string }> = {
   GROCERIES:     { label: 'Groceries',    icon: 'basket-outline',              color: '#10B981', bgColor: '#ECFDF5' },
   DINING:        { label: 'Dining',       icon: 'restaurant-outline',          color: '#F97316', bgColor: '#FFF7ED' },
   TRANSPORT:     { label: 'Transport',    icon: 'car-outline',                 color: '#3B82F6', bgColor: '#EFF6FF' },
