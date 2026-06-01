@@ -17,13 +17,12 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/Colors';
 import { CATEGORY_CONFIG } from '@/constants/categories';
-import type { GroupDto, UserDto, ReceiptDto, ReceiptCategory } from '@/types';
-import { CurrencyPickerModal, CurrencySelector } from '@/components/CurrencyPickerModal';
-import { CategoryPickerModal, CategorySelector } from '@/components/CategoryPickerModal';
+import type { GroupDto, UserDto, ReceiptDto } from '@/types';
 
 type ActiveView = { type: 'picker' } | { type: 'solo' } | { type: 'group'; id: string };
 
@@ -250,95 +249,35 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
   );
 }
 
-// ─── Manual receipt creation modal ───────────────────────────────────────────
+// ─── FAB context menu ────────────────────────────────────────────────────────
 
-type CategoryValue = ReceiptCategory;
-
-function CreateManualModal({
+function FabMenu({
   visible,
-  groupId,
   onClose,
+  onScan,
+  onManual,
 }: {
   visible: boolean;
-  groupId?: string;
   onClose: () => void;
+  onScan: () => void;
+  onManual: () => void;
 }) {
-  const { user } = useAuth();
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<CategoryValue | null>(null);
-  const [currency, setCurrency] = useState<string>(user?.preferredCurrency ?? 'RON');
-  const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
-  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
-  const [creating, setCreating] = useState(false);
-
-  const reset = () => { setTitle(''); setCategory(null); setCurrency(user?.preferredCurrency ?? 'RON'); };
-
-  const handleCreate = async () => {
-    if (!title.trim() || !category) return;
-    setCreating(true);
-    try {
-      const receipt = await api.receipts.createReceipt(title.trim(), groupId, category, currency);
-      onClose();
-      reset();
-      router.push(`/receipt/review?id=${receipt.id}` as any);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    } finally {
-      setCreating(false);
-    }
-  };
-
+  const tabBarHeight = useBottomTabBarHeight();
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>New Receipt</Text>
-          <Text style={styles.label}>Title</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Dinner at Pizza Place"
-            placeholderTextColor={Colors.textMuted}
-            value={title}
-            onChangeText={setTitle}
-            autoFocus
-          />
-          <Text style={styles.label}>Category</Text>
-          <CategorySelector value={category} onPress={() => setCategoryPickerVisible(true)} />
-          <CurrencySelector
-            label="Currency"
-            value={currency}
-            onPress={() => setCurrencyPickerVisible(true)}
-          />
-          <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => { onClose(); reset(); }}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.primaryBtn, (creating || !title.trim() || !category) && styles.btnDisabled]}
-              onPress={handleCreate}
-              disabled={creating || !title.trim() || !category}
-            >
-              {creating
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={styles.primaryBtnText}>Create & Add Items</Text>
-              }
-            </TouchableOpacity>
-          </View>
+    <Modal visible={visible} transparent animationType="fade">
+      <TouchableOpacity style={styles.fabMenuOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={[styles.fabMenuSheet, { bottom: tabBarHeight + 24 }]}>
+          <TouchableOpacity style={styles.fabMenuItem} onPress={onManual}>
+            <Ionicons name="create-outline" size={20} color={Colors.text} />
+            <Text style={styles.fabMenuItemText}>Add manually</Text>
+          </TouchableOpacity>
+          <View style={styles.fabMenuDivider} />
+          <TouchableOpacity style={styles.fabMenuItem} onPress={onScan}>
+            <Ionicons name="camera-outline" size={20} color={Colors.text} />
+            <Text style={styles.fabMenuItemText}>Scan receipt</Text>
+          </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-      <CurrencyPickerModal
-        visible={currencyPickerVisible}
-        selected={currency}
-        onSelect={setCurrency}
-        onClose={() => setCurrencyPickerVisible(false)}
-      />
-      <CategoryPickerModal
-        visible={categoryPickerVisible}
-        selected={category}
-        onSelect={setCategory}
-        onClose={() => setCategoryPickerVisible(false)}
-      />
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -349,7 +288,7 @@ function SoloView({ onBack }: { onBack: () => void }) {
   const [receipts, setReceipts] = useState<ReceiptDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [manualVisible, setManualVisible] = useState(false);
+  const [fabMenuVisible, setFabMenuVisible] = useState(false);
 
   const load = async () => {
     try {
@@ -405,16 +344,16 @@ function SoloView({ onBack }: { onBack: () => void }) {
         )}
       />
 
-      <View style={styles.fabRow}>
-        <TouchableOpacity style={styles.fabSecondary} onPress={() => setManualVisible(true)}>
-          <Ionicons name="add-outline" size={22} color={Colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.fab} onPress={() => router.push('/receipt/scan' as any)}>
-          <Ionicons name="camera" size={22} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.fab} onPress={() => setFabMenuVisible(true)}>
+        <Ionicons name="add" size={26} color="#fff" />
+      </TouchableOpacity>
 
-      <CreateManualModal visible={manualVisible} onClose={() => setManualVisible(false)} />
+      <FabMenu
+        visible={fabMenuVisible}
+        onClose={() => setFabMenuVisible(false)}
+        onScan={() => { setFabMenuVisible(false); router.push('/receipt/scan' as any); }}
+        onManual={() => { setFabMenuVisible(false); router.push('/receipt/new' as any); }}
+      />
     </SafeAreaView>
   );
 }
@@ -433,7 +372,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [addModal, setAddModal] = useState(false);
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
-  const [manualVisible, setManualVisible] = useState(false);
+  const [fabMenuVisible, setFabMenuVisible] = useState(false);
   const [filterUnpaid, setFilterUnpaid] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false, unpaid = false) => {
@@ -567,16 +506,16 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
         )}
       </ScrollView>
 
-      <View style={styles.fabRow}>
-        <TouchableOpacity style={styles.fabSecondary} onPress={() => setManualVisible(true)}>
-          <Ionicons name="add-outline" size={22} color={Colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.fab} onPress={() => router.push(`/receipt/scan?groupId=${id}` as any)}>
-          <Ionicons name="camera" size={22} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.fab} onPress={() => setFabMenuVisible(true)}>
+        <Ionicons name="add" size={26} color="#fff" />
+      </TouchableOpacity>
 
-      <CreateManualModal visible={manualVisible} groupId={id} onClose={() => setManualVisible(false)} />
+      <FabMenu
+        visible={fabMenuVisible}
+        onClose={() => setFabMenuVisible(false)}
+        onScan={() => { setFabMenuVisible(false); router.push(`/receipt/scan?groupId=${id}` as any); }}
+        onManual={() => { setFabMenuVisible(false); router.push(`/receipt/new?groupId=${id}` as any); }}
+      />
 
       {/* Three-dots action menu */}
       <Modal visible={menuVisible} transparent animationType="fade">
@@ -719,9 +658,12 @@ const styles = StyleSheet.create({
   scanGroupBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 4 },
   scanGroupBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  fabRow: { position: 'absolute', bottom: 24, right: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  fab: { backgroundColor: Colors.primary, borderRadius: 16, width: 56, height: 56, justifyContent: 'center', alignItems: 'center', shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
-  fabSecondary: { backgroundColor: Colors.surface, borderRadius: 16, width: 48, height: 48, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: Colors.primary, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
+  fab: { position: 'absolute', bottom: 24, right: 20, backgroundColor: Colors.primary, borderRadius: 16, width: 56, height: 56, justifyContent: 'center', alignItems: 'center' },
+  fabMenuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
+  fabMenuSheet: { position: 'absolute', right: 20, backgroundColor: Colors.surface, borderRadius: 14, paddingVertical: 6, minWidth: 190, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 10 },
+  fabMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  fabMenuItemText: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  fabMenuDivider: { height: 1, backgroundColor: Colors.border, marginHorizontal: 8 },
 
   memberCard: { backgroundColor: Colors.background, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   memberAvatar: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center' },

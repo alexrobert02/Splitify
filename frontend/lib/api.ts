@@ -155,7 +155,7 @@ export const api = {
       }
       return response.json();
     },
-    update: (id: string, data: { title?: string; currency?: string; groupId?: string }) =>
+    update: (id: string, data: { title?: string; currency?: string; groupId?: string; category?: string }) =>
       request<ReceiptDto>(`/api/receipts/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),

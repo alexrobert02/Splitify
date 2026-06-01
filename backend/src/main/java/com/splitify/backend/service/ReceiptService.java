@@ -292,6 +292,9 @@ public class ReceiptService {
         if (request.getCurrency() != null && !request.getCurrency().isBlank()) {
             receipt.setCurrency(request.getCurrency().toUpperCase());
         }
+        if (request.getCategory() != null) {
+            receipt.setCategory(request.getCategory());
+        }
         return toDto(receiptRepository.save(receipt));
     }
 

@@ -16,8 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import { Colors } from '@/constants/Colors';
-import type { ReceiptDto, ReceiptItemDto } from '@/types';
+import type { ReceiptDto, ReceiptItemDto, ReceiptCategory } from '@/types';
 import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
+import { CategoryPickerModal } from '@/components/CategoryPickerModal';
+import { CATEGORY_CONFIG } from '@/constants/categories';
 
 type EditState = { name: string; quantity: string; unitPrice: string };
 
@@ -38,6 +40,8 @@ export default function ReviewScreen() {
   const [confirming, setConfirming] = useState(false);
   const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
   const [savingCurrency, setSavingCurrency] = useState(false);
+  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
 
   const busy = editingId !== null || showAddForm;
 
@@ -50,6 +54,18 @@ export default function ReviewScreen() {
       Alert.alert('Error', e.message);
     } finally {
       setSavingCurrency(false);
+    }
+  };
+
+  const handleCategoryChange = async (cat: ReceiptCategory) => {
+    setSavingCategory(true);
+    try {
+      const updated = await api.receipts.update(id, { category: cat });
+      setReceipt(updated);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSavingCategory(false);
     }
   };
 
@@ -166,6 +182,7 @@ export default function ReviewScreen() {
 
   const currency = receipt?.currency ?? '';
   const total = receipt?.items.reduce((sum, i) => sum + i.totalPrice, 0) ?? 0;
+  const catCfg = CATEGORY_CONFIG[receipt?.category ?? 'OTHER'] ?? CATEGORY_CONFIG.OTHER;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -260,6 +277,24 @@ export default function ReviewScreen() {
           )}
 
           <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Category</Text>
+            <TouchableOpacity
+              style={styles.currencyBtn}
+              onPress={() => setCategoryPickerVisible(true)}
+              disabled={savingCategory || busy}
+            >
+              {savingCategory
+                ? <ActivityIndicator size="small" color={Colors.primary} />
+                : <>
+                    <Ionicons name={catCfg.icon as any} size={13} color={Colors.primary} />
+                    <Text style={styles.currencyBtnText}>{receipt?.category ?? ''}</Text>
+                    <Ionicons name="swap-horizontal" size={13} color={Colors.primary} />
+                  </>
+              }
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.totalRow}>
             <View style={styles.totalLeft}>
               <Text style={styles.totalLabel}>Total</Text>
               <TouchableOpacity
@@ -284,6 +319,12 @@ export default function ReviewScreen() {
             selected={currency}
             onSelect={handleCurrencyChange}
             onClose={() => setCurrencyPickerVisible(false)}
+          />
+          <CategoryPickerModal
+            visible={categoryPickerVisible}
+            selected={receipt?.category ?? null}
+            onSelect={handleCategoryChange}
+            onClose={() => setCategoryPickerVisible(false)}
           />
         </ScrollView>
 
