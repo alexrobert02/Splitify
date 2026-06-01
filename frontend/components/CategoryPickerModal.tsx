@@ -17,34 +17,37 @@ interface ModalProps {
 
 export function CategoryPickerModal({ visible, selected, onSelect, onClose }: ModalProps) {
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <Text style={styles.title}>Select Category</Text>
-        <FlatList
-          data={CATEGORIES}
-          keyExtractor={(item) => item.value}
-          renderItem={({ item }) => {
-            const active = item.value === selected;
-            return (
-              <TouchableOpacity
-                style={[styles.row, active && styles.rowActive]}
-                onPress={() => { onSelect(item.value); onClose(); }}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconBox, { backgroundColor: item.color + '20' }]}>
-                  <Ionicons name={item.icon} size={18} color={item.color} />
-                </View>
-                <Text style={[styles.label, active && { color: item.color, fontWeight: '700' }]}>
-                  {item.label}
-                </Text>
-                {active && <Ionicons name="checkmark-circle" size={20} color={item.color} />}
-              </TouchableOpacity>
-            );
-          }}
-          contentContainerStyle={{ paddingBottom: 32 }}
-        />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.container}>
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onClose} activeOpacity={1} />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+          <Text style={styles.title}>Select Category</Text>
+          <FlatList
+            data={CATEGORIES}
+            keyExtractor={(item) => item.value}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => {
+              const active = item.value === selected;
+              return (
+                <TouchableOpacity
+                  style={[styles.row, active && styles.rowActive]}
+                  onPress={() => { onSelect(item.value); onClose(); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.iconBox, { backgroundColor: item.color + '20' }]}>
+                    <Ionicons name={item.icon} size={18} color={item.color} />
+                  </View>
+                  <Text style={[styles.label, active && { color: item.color, fontWeight: '700' }]}>
+                    {item.label}
+                  </Text>
+                  {active && <Ionicons name="checkmark-circle" size={20} color={item.color} />}
+                </TouchableOpacity>
+              );
+            }}
+            contentContainerStyle={{ paddingBottom: 32 }}
+          />
+        </View>
       </View>
     </Modal>
   );
@@ -79,15 +82,12 @@ export function CategorySelector({ value, onPress, placeholder = 'Select categor
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
+  container: {
+    flex: 1,
+    justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

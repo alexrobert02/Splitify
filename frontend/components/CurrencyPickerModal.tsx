@@ -12,32 +12,35 @@ interface Props {
 
 export function CurrencyPickerModal({ visible, selected, onSelect, onClose }: Props) {
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <Text style={styles.title}>Select Currency</Text>
-        <FlatList
-          data={CURRENCIES}
-          keyExtractor={(item) => item.code}
-          renderItem={({ item }) => {
-            const active = item.code === selected;
-            return (
-              <TouchableOpacity
-                style={[styles.row, active && styles.rowActive]}
-                onPress={() => { onSelect(item.code); onClose(); }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.rowLeft}>
-                  <Text style={[styles.code, active && styles.codeActive]}>{item.code}</Text>
-                  <Text style={styles.name}>{item.name}</Text>
-                </View>
-                {active && <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />}
-              </TouchableOpacity>
-            );
-          }}
-          contentContainerStyle={{ paddingBottom: 32 }}
-        />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.container}>
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onClose} activeOpacity={1} />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+          <Text style={styles.title}>Select Currency</Text>
+          <FlatList
+            data={CURRENCIES}
+            keyExtractor={(item) => item.code}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => {
+              const active = item.code === selected;
+              return (
+                <TouchableOpacity
+                  style={[styles.row, active && styles.rowActive]}
+                  onPress={() => { onSelect(item.code); onClose(); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.rowLeft}>
+                    <Text style={[styles.code, active && styles.codeActive]}>{item.code}</Text>
+                    <Text style={styles.name}>{item.name}</Text>
+                  </View>
+                  {active && <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />}
+                </TouchableOpacity>
+              );
+            }}
+            contentContainerStyle={{ paddingBottom: 32 }}
+          />
+        </View>
       </View>
     </Modal>
   );
@@ -65,15 +68,12 @@ export function CurrencySelector({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
+  container: {
+    flex: 1,
+    justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
