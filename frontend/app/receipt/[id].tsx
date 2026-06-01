@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -93,16 +93,38 @@ function AssignModal({
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
+  const initialSelected = useRef<Set<string>>(new Set());
+  const initialSplitType = useRef<SplitType>('EQUAL');
+  const initialCustomValues = useRef<Record<string, string>>({});
+
   useEffect(() => {
     if (visible && item) {
       const existing = new Set(item.assignments?.map(a => a.userId) ?? []);
-      setSelected(existing);
       const vals: Record<string, string> = {};
       item.assignments?.forEach(a => { if (a.splitValue) vals[a.userId] = String(a.splitValue); });
+      const type: SplitType = item.assignments?.[0]?.splitType ?? 'EQUAL';
+
+      setSelected(existing);
       setCustomValues(vals);
-      setSplitType(item.assignments?.[0]?.splitType ?? 'EQUAL');
+      setSplitType(type);
+
+      initialSelected.current = new Set(existing);
+      initialSplitType.current = type;
+      initialCustomValues.current = { ...vals };
     }
   }, [visible, item]);
+
+  const hasChanges = (() => {
+    const a = selected, b = initialSelected.current;
+    if (a.size !== b.size || [...a].some(id => !b.has(id))) return true;
+    if (splitType !== initialSplitType.current) return true;
+    if (splitType !== 'EQUAL') {
+      for (const id of selected) {
+        if ((customValues[id] ?? '') !== (initialCustomValues.current[id] ?? '')) return true;
+      }
+    }
+    return false;
+  })();
 
   const toggleMember = (id: string) => {
     setSelected(prev => {
@@ -114,7 +136,7 @@ function AssignModal({
   };
 
   const handleSave = async () => {
-    if (!item || selected.size === 0) return;
+    if (!item) return;
     setSaving(true);
     try {
       const assignees: AssigneeEntry[] = Array.from(selected).map(uid => ({
@@ -139,8 +161,9 @@ function AssignModal({
     : user ? [{ id: user.id, name: user.name, email: user.email }] : [];
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onClose} activeOpacity={1} />
         <View style={styles.modalSheet}>
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Assign Item</Text>
@@ -205,18 +228,13 @@ function AssignModal({
             })}
           </ScrollView>
 
-          <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.saveBtn, (saving || selected.size === 0) && styles.btnDisabled]}
-              onPress={handleSave}
-              disabled={saving || selected.size === 0}
-            >
-              {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Assign</Text>}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.saveBtn, (saving || !hasChanges) && styles.btnDisabled, { marginTop: 16 }]}
+            onPress={handleSave}
+            disabled={saving || !hasChanges}
+          >
+            {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Assign</Text>}
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -776,10 +794,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     backgroundColor: Colors.surface,
   },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  cancelBtn: { flex: 1, borderWidth: 1.5, borderColor: Colors.border, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  cancelText: { fontSize: 15, fontWeight: '600', color: Colors.textSecondary },
-  saveBtn: { flex: 1, backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  saveBtn: { backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   saveText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   btnDisabled: { opacity: 0.5 },
 });

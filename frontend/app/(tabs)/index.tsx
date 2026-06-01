@@ -432,21 +432,13 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
     ]);
   };
 
-  const handleDeleteReceipt = (receiptId: string) => {
-    Alert.alert('Delete receipt', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          try {
-            await api.receipts.delete(receiptId);
-            setReceipts(prev => prev.filter(r => r.id !== receiptId));
-          } catch (e: any) {
-            Alert.alert('Error', e.message);
-          }
-        },
-      },
-    ]);
+  const handleDeleteReceipt = async (receiptId: string) => {
+    try {
+      await api.receipts.delete(receiptId);
+      setReceipts(prev => prev.filter(r => r.id !== receiptId));
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    }
   };
 
   if (loading) return <LoadingView />;
