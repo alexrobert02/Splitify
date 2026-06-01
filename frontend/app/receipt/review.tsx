@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -44,6 +45,24 @@ export default function ReviewScreen() {
   const [savingCategory, setSavingCategory] = useState(false);
 
   const busy = editingId !== null || showAddForm;
+  const scrollRef = useRef<ScrollView>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (showAddForm) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }));
+    }
+  }, [showAddForm]);
+
+  const handleAddFormFocus = () => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }));
+  };
 
   const handleCurrencyChange = async (code: string) => {
     setSavingCurrency(true);
@@ -195,14 +214,35 @@ export default function ReviewScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={styles.subtitle}>
             Review and correct the items extracted from your receipt before continuing.
           </Text>
 
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Category</Text>
+            <TouchableOpacity
+              style={styles.currencyBtn}
+              onPress={() => setCategoryPickerVisible(true)}
+              disabled={savingCategory || busy}
+            >
+              {savingCategory
+                ? <ActivityIndicator size="small" color={Colors.primary} />
+                : <>
+                    <Ionicons name={catCfg.icon as any} size={13} color={Colors.primary} />
+                    <Text style={styles.currencyBtnText}>{receipt?.category ?? ''}</Text>
+                    <Ionicons name="swap-horizontal" size={13} color={Colors.primary} />
+                  </>
+              }
+            </TouchableOpacity>
+          </View>
+
           {receipt?.items.map((item) =>
             editingId === item.id ? (
-              <View key={item.id} style={[styles.card, styles.cardEditing]}>
+              <View
+                key={item.id}
+                style={[styles.card, styles.cardEditing]}
+              >
                 <ItemForm
                   state={editState}
                   onChange={setEditState}
@@ -260,7 +300,7 @@ export default function ReviewScreen() {
                 onSave={saveAdd}
                 onCancel={cancelAdd}
                 saving={adding}
-                autoFocus
+                onFocus={handleAddFormFocus}
               />
             </View>
           ) : (
@@ -275,24 +315,6 @@ export default function ReviewScreen() {
               </Text>
             </TouchableOpacity>
           )}
-
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Category</Text>
-            <TouchableOpacity
-              style={styles.currencyBtn}
-              onPress={() => setCategoryPickerVisible(true)}
-              disabled={savingCategory || busy}
-            >
-              {savingCategory
-                ? <ActivityIndicator size="small" color={Colors.primary} />
-                : <>
-                    <Ionicons name={catCfg.icon as any} size={13} color={Colors.primary} />
-                    <Text style={styles.currencyBtnText}>{receipt?.category ?? ''}</Text>
-                    <Ionicons name="swap-horizontal" size={13} color={Colors.primary} />
-                  </>
-              }
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.totalRow}>
             <View style={styles.totalLeft}>
@@ -328,21 +350,23 @@ export default function ReviewScreen() {
           />
         </ScrollView>
 
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.confirmBtn, (busy || confirming) && styles.btnDisabled]}
-            onPress={handleConfirm}
-            disabled={busy || confirming}
-          >
-            {confirming
-              ? <ActivityIndicator color="#fff" />
-              : <>
-                  <Text style={styles.confirmBtnText}>Confirm & Continue</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#fff" />
-                </>
-            }
-          </TouchableOpacity>
-        </View>
+        {!keyboardVisible && (
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[styles.confirmBtn, (busy || confirming) && styles.btnDisabled]}
+              onPress={handleConfirm}
+              disabled={busy || confirming}
+            >
+              {confirming
+                ? <ActivityIndicator color="#fff" />
+                : <>
+                    <Text style={styles.confirmBtnText}>Confirm & Continue</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                  </>
+              }
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -354,6 +378,7 @@ function ItemForm({
   onSave,
   onCancel,
   saving,
+  onFocus,
   autoFocus,
 }: {
   state: EditState;
@@ -361,6 +386,7 @@ function ItemForm({
   onSave: () => void;
   onCancel: () => void;
   saving: boolean;
+  onFocus?: () => void;
   autoFocus?: boolean;
 }) {
   return (
@@ -374,6 +400,7 @@ function ItemForm({
           placeholder="Item name"
           placeholderTextColor={Colors.textMuted}
           autoFocus={autoFocus}
+          onFocus={onFocus}
         />
       </View>
       <View style={styles.row}>
@@ -386,6 +413,7 @@ function ItemForm({
             keyboardType="decimal-pad"
             placeholder="1"
             placeholderTextColor={Colors.textMuted}
+            onFocus={onFocus}
           />
         </View>
         <View style={[styles.fieldGroup, styles.flex]}>
@@ -397,6 +425,7 @@ function ItemForm({
             keyboardType="decimal-pad"
             placeholder="0.00"
             placeholderTextColor={Colors.textMuted}
+            onFocus={onFocus}
           />
         </View>
       </View>
