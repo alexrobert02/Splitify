@@ -227,7 +227,7 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
       <View style={styles.pickerHeader}>
         <View>
           <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0]}</Text>
-          <Text style={styles.heading}>Groups</Text>
+          <Text style={styles.heading}>Receipts</Text>
         </View>
         <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
           <Ionicons name="add" size={22} color="#fff" />
