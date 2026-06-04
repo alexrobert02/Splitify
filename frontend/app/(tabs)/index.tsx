@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -36,49 +36,109 @@ function LoadingView() {
   );
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  PENDING_REVIEW:     '#F59E0B',
-  PENDING_ASSIGNMENT: '#3B82F6',
-  PENDING_PAYMENT:    '#EF4444',
-  FINALIZED:          '#10B981',
+
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  PENDING_REVIEW:     { label: 'Review items',   color: '#F59E0B' },
+  PENDING_ASSIGNMENT: { label: 'Assign items',   color: '#3B82F6' },
+  PENDING_PAYMENT:    { label: 'Payment due',    color: '#EF4444' },
+  FINALIZED:          { label: 'Finalized',      color: '#10B981' },
 };
 
-function ReceiptCard({ receipt, onDelete }: { receipt: ReceiptDto; onDelete: () => void }) {
+const STATUS_FILTER_OPTIONS: { key: string | null; label: string }[] = [
+  { key: null,                 label: 'All statuses' },
+  { key: 'PENDING_REVIEW',     label: 'Review items' },
+  { key: 'PENDING_ASSIGNMENT', label: 'Assign items' },
+  { key: 'PENDING_PAYMENT',    label: 'Payment due' },
+  { key: 'FINALIZED',          label: 'Finalized' },
+];
+
+function StatusFilterButton({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const insets = useSafeAreaInsets();
+  const cfg = value ? STATUS_CONFIG[value] : null;
+  const label = cfg ? cfg.label : 'All statuses';
+  const color = cfg?.color ?? Colors.textSecondary;
+  // header (60) + groupFilters bar (10 padding + ~32 chip + 2 padding = 44)
+  const dropdownTop = insets.top + 60 + 44;
+
+  return (
+    <>
+      <TouchableOpacity
+        style={[styles.filterChip, { marginHorizontal: 0, marginTop: 0, marginBottom: 0 }, value !== null && { borderColor: color, backgroundColor: color + '18' }]}
+        onPress={() => setOpen(true)}
+      >
+        <Ionicons name="funnel-outline" size={13} color={value !== null ? color : Colors.textSecondary} />
+        <Text style={[styles.filterChipText, value !== null && { color, fontWeight: '700' }]}>{label}</Text>
+        <Ionicons name="chevron-down" size={13} color={value !== null ? color : Colors.textSecondary} />
+      </TouchableOpacity>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={styles.dropdownOverlay} activeOpacity={1} onPress={() => setOpen(false)} />
+        <View style={[styles.dropdownSheet, { top: dropdownTop }]}>
+          <Text style={styles.dropdownTitle}>Filter by status</Text>
+          {STATUS_FILTER_OPTIONS.map(opt => {
+            const optCfg = opt.key ? STATUS_CONFIG[opt.key] : null;
+            const optColor = optCfg?.color ?? Colors.text;
+            const selected = value === opt.key;
+            return (
+              <TouchableOpacity
+                key={String(opt.key)}
+                style={[styles.dropdownItem, selected && { backgroundColor: (optCfg?.color ?? Colors.primary) + '12' }]}
+                onPress={() => { onChange(opt.key); setOpen(false); }}
+              >
+                {opt.key ? (
+                  <View style={[styles.dropdownDot, { backgroundColor: optColor }]} />
+                ) : (
+                  <Ionicons name="list-outline" size={14} color={Colors.textSecondary} style={{ width: 14 }} />
+                )}
+                <Text style={[styles.dropdownItemText, selected && { color: optColor, fontWeight: '700' }]}>
+                  {opt.label}
+                </Text>
+                {selected && <Ionicons name="checkmark" size={16} color={optColor} style={{ marginLeft: 'auto' }} />}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+function ReceiptCard({ receipt }: { receipt: ReceiptDto }) {
   const date = new Date(receipt.scannedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const destination = receipt.status === 'PENDING_REVIEW'
     ? `/receipt/review?id=${receipt.id}`
     : `/receipt/${receipt.id}`;
-  const statusColor = STATUS_COLOR[receipt.status] ?? STATUS_COLOR.FINALIZED;
   const catCfg = CATEGORY_CONFIG[receipt.category] ?? CATEGORY_CONFIG.OTHER;
+  const statusCfg = STATUS_CONFIG[receipt.status] ?? STATUS_CONFIG.FINALIZED;
   return (
     <TouchableOpacity
       style={styles.receiptCard}
       onPress={() => router.push(destination as any)}
       activeOpacity={0.7}
     >
-      <View style={[styles.statusStrip, { backgroundColor: statusColor }]} />
       <View style={styles.receiptLeft}>
         <View style={[styles.receiptIcon, { backgroundColor: catCfg.bgColor }]}>
           <Ionicons name={catCfg.icon as any} size={18} color={catCfg.color} />
         </View>
         <View style={styles.receiptInfo}>
           <Text style={styles.receiptTitle} numberOfLines={1}>{receipt.title || 'Untitled'}</Text>
-          <Text style={styles.receiptDate}>{date}{receipt.scannedByName ? ` · ${receipt.scannedByName}` : ''}</Text>
+          <View style={styles.receiptMeta}>
+            <View style={[styles.statusBadge, { backgroundColor: statusCfg.color + '18' }]}>
+              <Text style={[styles.statusBadgeText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+            </View>
+          </View>
         </View>
       </View>
       <View style={styles.receiptRight}>
         <Text style={styles.receiptAmt}>{receipt.currency ?? 'RON'} {Number(receipt.totalAmount).toFixed(2)}</Text>
-        <TouchableOpacity
-          hitSlop={8}
-          onPress={() =>
-            Alert.alert('Delete receipt', 'Are you sure?', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: onDelete },
-            ])
-          }
-        >
-          <Ionicons name="trash-outline" size={16} color={Colors.error} />
-        </TouchableOpacity>
+        <Text style={styles.receiptDate}>{date}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -289,6 +349,7 @@ function SoloView({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -327,20 +388,24 @@ function SoloView({ onBack }: { onBack: () => void }) {
         </View>
       </View>
 
+      <View style={styles.groupFilters}>
+        <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
+      </View>
+
       <FlatList
-        data={receipts}
+        data={statusFilter ? receipts.filter(r => r.status === statusFilter) : receipts}
         keyExtractor={(r) => r.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={Colors.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={64} color={Colors.border} />
-            <Text style={styles.emptyTitle}>No personal receipts</Text>
-            <Text style={styles.emptySub}>Tap the camera button to scan one</Text>
+            <Text style={styles.emptyTitle}>{statusFilter ? 'No matching receipts' : 'No personal receipts'}</Text>
+            <Text style={styles.emptySub}>{statusFilter ? 'Try a different filter' : 'Tap the camera button to scan one'}</Text>
           </View>
         }
         renderItem={({ item }) => (
-          <ReceiptCard receipt={item} onDelete={() => handleDelete(item.id)} />
+          <ReceiptCard receipt={item} />
         )}
       />
 
@@ -362,6 +427,7 @@ function SoloView({ onBack }: { onBack: () => void }) {
 
 function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [group, setGroup] = useState<GroupDto | null>(null);
   const [receipts, setReceipts] = useState<ReceiptDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -374,6 +440,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [adding, setAdding] = useState(false);
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
   const [filterUnpaid, setFilterUnpaid] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   const loadData = useCallback(async (isRefresh = false, unpaid = false) => {
     if (!isRefresh) setReceiptsLoading(true);
@@ -461,13 +528,19 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={[styles.filterChip, filterUnpaid && styles.filterChipActive]}
-        onPress={() => { setReceiptsLoading(true); setFilterUnpaid(v => !v); }}
-      >
-        <Ionicons name="time-outline" size={14} color={filterUnpaid ? '#fff' : Colors.textSecondary} />
-        <Text style={[styles.filterChipText, filterUnpaid && styles.filterChipTextActive]}>My unpaid</Text>
-      </TouchableOpacity>
+      <View style={styles.groupFilters}>
+        <StatusFilterButton
+          value={statusFilter}
+          onChange={v => { setStatusFilter(v); if (v !== null) setFilterUnpaid(false); }}
+        />
+        <TouchableOpacity
+          style={[styles.filterChip, filterUnpaid && styles.filterChipActive, { marginHorizontal: 0, marginTop: 0 }]}
+          onPress={() => { setStatusFilter(null); setReceiptsLoading(true); setFilterUnpaid(v => !v); }}
+        >
+          <Ionicons name="time-outline" size={14} color={filterUnpaid ? '#fff' : Colors.textSecondary} />
+          <Text style={[styles.filterChipText, filterUnpaid && styles.filterChipTextActive]}>My unpaid</Text>
+        </TouchableOpacity>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.list}
@@ -477,25 +550,34 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
           <View style={styles.listSpinner}>
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        ) : receipts.length === 0 && !filterUnpaid ? (
-          <View style={styles.empty}>
-            <Ionicons name="receipt-outline" size={48} color={Colors.border} />
-            <Text style={styles.emptyText}>No receipts in this group yet</Text>
-            <TouchableOpacity style={styles.scanGroupBtn} onPress={() => router.push(`/receipt/scan?groupId=${id}` as any)}>
-              <Ionicons name="camera" size={16} color="#fff" />
-              <Text style={styles.scanGroupBtnText}>Scan Receipt</Text>
-            </TouchableOpacity>
-          </View>
-        ) : receipts.length === 0 ? (
-          <View style={styles.empty}>
-            <Ionicons name="checkmark-circle-outline" size={48} color={Colors.border} />
-            <Text style={styles.emptyText}>You&#39;re all settled up!</Text>
-          </View>
-        ) : (
-          receipts.map(r => (
-            <ReceiptCard key={r.id} receipt={r} onDelete={() => handleDeleteReceipt(r.id)} />
-          ))
-        )}
+        ) : (() => {
+          const filtered = statusFilter ? receipts.filter(r => r.status === statusFilter) : receipts;
+          if (filtered.length === 0 && !filterUnpaid && !statusFilter) return (
+            <View style={styles.empty}>
+              <Ionicons name="receipt-outline" size={48} color={Colors.border} />
+              <Text style={styles.emptyText}>No receipts in this group yet</Text>
+              <TouchableOpacity style={styles.scanGroupBtn} onPress={() => router.push(`/receipt/scan?groupId=${id}` as any)}>
+                <Ionicons name="camera" size={16} color="#fff" />
+                <Text style={styles.scanGroupBtnText}>Scan Receipt</Text>
+              </TouchableOpacity>
+            </View>
+          );
+          if (filtered.length === 0 && filterUnpaid && !statusFilter) return (
+            <View style={styles.empty}>
+              <Ionicons name="checkmark-circle-outline" size={48} color={Colors.border} />
+              <Text style={styles.emptyText}>You&#39;re all settled up!</Text>
+            </View>
+          );
+          if (filtered.length === 0) return (
+            <View style={styles.empty}>
+              <Ionicons name="receipt-outline" size={48} color={Colors.border} />
+              <Text style={styles.emptyText}>No matching receipts</Text>
+            </View>
+          );
+          return filtered.map(r => (
+            <ReceiptCard key={r.id} receipt={r} />
+          ));
+        })()}
       </ScrollView>
 
       <TouchableOpacity style={styles.fab} onPress={() => setFabMenuVisible(true)}>
@@ -512,7 +594,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
       {/* Three-dots action menu */}
       <Modal visible={menuVisible} transparent animationType="fade">
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
-          <View style={styles.menuSheet}>
+          <View style={[styles.menuSheet, { top: insets.top + 60 }]}>
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); setMembersVisible(true); }}>
               <Ionicons name="people-outline" size={20} color={Colors.text} />
               <Text style={styles.menuItemText}>View Members</Text>
@@ -614,7 +696,7 @@ const styles = StyleSheet.create({
   detailHeaderSub: { fontSize: 12, color: Colors.textSecondary },
   menuBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' },
   menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
-  menuSheet: { position: 'absolute', top: 60, right: 16, backgroundColor: Colors.surface, borderRadius: 14, paddingVertical: 6, minWidth: 180, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
+  menuSheet: { position: 'absolute', right: 16, backgroundColor: Colors.surface, borderRadius: 14, paddingVertical: 6, minWidth: 180, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 13 },
   menuItemText: { fontSize: 15, fontWeight: '600', color: Colors.text },
 
@@ -635,11 +717,14 @@ const styles = StyleSheet.create({
   receiptCard: { backgroundColor: Colors.surface, borderRadius: 14, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   receiptLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   receiptIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  statusStrip: { position: 'absolute', left: 0, top: 6, bottom: 6, width: 3, borderRadius: 2 },
+
   receiptInfo: { flex: 1 },
   receiptTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
-  receiptDate: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
-  receiptRight: { alignItems: 'flex-end', gap: 6 },
+  receiptMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  statusBadge: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
+  statusBadgeText: { fontSize: 10, fontWeight: '700' },
+  receiptDate: { fontSize: 11, color: Colors.textSecondary },
+  receiptRight: { alignItems: 'flex-end', gap: 2 },
   receiptAmt: { fontSize: 14, fontWeight: '700', color: Colors.text },
 
   listSpinner: { alignItems: 'center', paddingTop: 80 },
@@ -668,6 +753,7 @@ const styles = StyleSheet.create({
   roleText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
   ownerText: { color: Colors.primary },
 
+  groupFilters: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -686,6 +772,24 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   filterChipText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
   filterChipTextActive: { color: '#fff' },
+  dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
+  dropdownSheet: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  dropdownTitle: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, paddingHorizontal: 16, paddingVertical: 8 },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10, marginHorizontal: 6 },
+  dropdownDot: { width: 8, height: 8, borderRadius: 4 },
+  dropdownItemText: { fontSize: 14, fontWeight: '600', color: Colors.text },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: Colors.overlay },
   modalSheet: { backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 20 },

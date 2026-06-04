@@ -376,6 +376,7 @@ export default function ReceiptDetailScreen() {
   const [assignTarget, setAssignTarget] = useState<ReceiptItemDto | null>(null);
   const [proceeding, setProceeding] = useState(false);
   const [assigningAll, setAssigningAll] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -428,6 +429,24 @@ export default function ReceiptDetailScreen() {
     }
   };
 
+  const handleDelete = () => {
+    Alert.alert('Delete receipt', 'Are you sure you want to delete this receipt?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          setDeleting(true);
+          try {
+            await api.receipts.delete(id);
+            router.back();
+          } catch (e: any) {
+            Alert.alert('Error', e.message);
+            setDeleting(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const handleProceed = async () => {
     if (!receipt) return;
     setProceeding(true);
@@ -463,7 +482,11 @@ export default function ReceiptDetailScreen() {
           <Ionicons name="arrow-back" size={22} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{receipt.title || 'Receipt'}</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={handleDelete} style={styles.backBtn} disabled={deleting}>
+          {deleting
+            ? <ActivityIndicator size="small" color={Colors.error} />
+            : <Ionicons name="trash-outline" size={20} color={Colors.error} />}
+        </TouchableOpacity>
       </View>
 
       {receipt.finalized ? (
