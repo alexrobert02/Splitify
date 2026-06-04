@@ -40,6 +40,7 @@ export default function ReviewScreen() {
   const [addState, setAddState] = useState<EditState>(emptyEdit());
   const [adding, setAdding] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
   const [savingCurrency, setSavingCurrency] = useState(false);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
@@ -87,6 +88,24 @@ export default function ReviewScreen() {
     } finally {
       setSavingCategory(false);
     }
+  };
+
+  const handleDeleteReceipt = () => {
+    Alert.alert('Delete receipt', 'Are you sure you want to delete this receipt?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          setDeleting(true);
+          try {
+            await api.receipts.delete(id);
+            router.back();
+          } catch (e: any) {
+            Alert.alert('Error', e.message);
+            setDeleting(false);
+          }
+        },
+      },
+    ]);
   };
 
   const handleConfirm = async () => {
@@ -212,7 +231,11 @@ export default function ReviewScreen() {
             <Ionicons name="arrow-back" size={20} color={Colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Review Items</Text>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity onPress={handleDeleteReceipt} style={styles.headerBtn} disabled={deleting}>
+            {deleting
+              ? <ActivityIndicator size="small" color={Colors.error} />
+              : <Ionicons name="trash-outline" size={20} color={Colors.error} />}
+          </TouchableOpacity>
         </View>
 
         <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

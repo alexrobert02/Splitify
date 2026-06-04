@@ -40,7 +40,7 @@ function LoadingView() {
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   PENDING_REVIEW:     { label: 'Review items',   color: '#F59E0B' },
   PENDING_ASSIGNMENT: { label: 'Assign items',   color: '#3B82F6' },
-  PENDING_PAYMENT:    { label: 'Payment due',    color: '#EF4444' },
+  PENDING_PAYMENT:    { label: 'Pending',        color: '#EF4444' },
   FINALIZED:          { label: 'Finalized',      color: '#10B981' },
 };
 
@@ -48,7 +48,7 @@ const STATUS_FILTER_OPTIONS: { key: string | null; label: string }[] = [
   { key: null,                 label: 'All statuses' },
   { key: 'PENDING_REVIEW',     label: 'Review items' },
   { key: 'PENDING_ASSIGNMENT', label: 'Assign items' },
-  { key: 'PENDING_PAYMENT',    label: 'Payment due' },
+  { key: 'PENDING_PAYMENT',    label: 'Pending' },
   { key: 'FINALIZED',          label: 'Finalized' },
 ];
 
