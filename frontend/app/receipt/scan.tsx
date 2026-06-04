@@ -57,7 +57,7 @@ export default function ScanScreen() {
     setUploading(true);
     try {
       const receipt = await api.receipts.scan(imageUri, title.trim(), groupId);
-      router.replace(`/receipt/review?id=${receipt.id}` as any);
+      router.replace(`/receipt/review?id=${receipt.id}&source=scan` as any);
     } catch (e: any) {
       Alert.alert('Upload failed', e.message ?? 'Please try again');
     } finally {

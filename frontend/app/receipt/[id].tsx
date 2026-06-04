@@ -47,11 +47,15 @@ function ReceiptMeta({ receipt, currency }: { receipt: ReceiptDto; currency: str
         <Text style={styles.metaLabel}>Total</Text>
         <Text style={styles.metaTotal}>{currency} {Number(receipt.totalAmount).toFixed(2)}</Text>
       </View>
-      <View style={styles.metaDivider} />
-      <View style={styles.metaRow}>
-        <Text style={styles.metaLabel}>Scanned by</Text>
-        <Text style={styles.metaValue}>{receipt.scannedByName}</Text>
-      </View>
+      {receipt.groupName && (
+        <>
+          <View style={styles.metaDivider} />
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Scanned by</Text>
+            <Text style={styles.metaValue}>{receipt.scannedByName}</Text>
+          </View>
+        </>
+      )}
       {receipt.groupName && (
         <View style={styles.metaRow}>
           <Text style={styles.metaLabel}>Group</Text>
@@ -309,7 +313,7 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
               </View>
               <View style={{ alignItems: 'flex-end', gap: 4 }}>
                 <Text style={styles.pTotal}>{currency} {Number(p.totalOwed).toFixed(2)}</Text>
-                {p.paid && (
+                {p.paid && !!receipt.groupId && (
                   <View style={styles.paidBadge}>
                     <Ionicons name="checkmark-circle" size={11} color={Colors.success} />
                     <Text style={styles.paidBadgeText}>Paid</Text>

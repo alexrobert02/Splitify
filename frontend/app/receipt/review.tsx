@@ -27,7 +27,8 @@ type EditState = { name: string; quantity: string; unitPrice: string };
 const emptyEdit = (): EditState => ({ name: '', quantity: '1', unitPrice: '' });
 
 export default function ReviewScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
+  const isScanned = source === 'scan';
   const [receipt, setReceipt] = useState<ReceiptDto | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -215,9 +216,11 @@ export default function ReviewScreen() {
         </View>
 
         <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.subtitle}>
-            Review and correct the items extracted from your receipt before continuing.
-          </Text>
+          {isScanned && (
+            <Text style={styles.subtitle}>
+              Review and correct the items extracted from your receipt before continuing.
+            </Text>
+          )}
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Category</Text>
@@ -287,7 +290,9 @@ export default function ReviewScreen() {
           {receipt?.items.length === 0 && !showAddForm && (
             <View style={styles.emptyState}>
               <Ionicons name="receipt-outline" size={40} color={Colors.textMuted} />
-              <Text style={styles.emptyText}>No items were extracted. Add them manually below.</Text>
+              <Text style={styles.emptyText}>
+                {isScanned ? 'Nothing could be extracted from the receipt. Add items manually below.' : 'No items yet. Add them below.'}
+              </Text>
             </View>
           )}
 
