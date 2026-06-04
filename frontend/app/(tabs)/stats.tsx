@@ -4,10 +4,12 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Modal,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -90,6 +92,7 @@ interface PaidEntry {
   currency: string;
   scannedAt: string;
   amount: number;
+  title: string;
 }
 
 interface CategoryStat {
@@ -99,12 +102,12 @@ interface CategoryStat {
 }
 
 // ─── Category Row ─────────────────────────────────────────────────────────────
-function CategoryRow({ stat, maxAmount, currency }: { stat: CategoryStat; maxAmount: number; currency: string }) {
+function CategoryRow({ stat, maxAmount, currency, onPress }: { stat: CategoryStat; maxAmount: number; currency: string; onPress: () => void }) {
   const config = CATEGORY_CONFIG[stat.category];
   const barWidth = maxAmount > 0 ? (stat.amount / maxAmount) * 100 : 0;
 
   return (
-    <View style={styles.catRow}>
+    <TouchableOpacity style={styles.catRow} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.catIconBox, { backgroundColor: config.bgColor }]}>
         <Ionicons name={config.icon} size={18} color={config.color} />
       </View>
@@ -120,7 +123,71 @@ function CategoryRow({ stat, maxAmount, currency }: { stat: CategoryStat; maxAmo
         </View>
         <Text style={styles.catCount}>{stat.count} receipt{stat.count !== 1 ? 's' : ''}</Text>
       </View>
-    </View>
+      <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} style={{ alignSelf: 'center' }} />
+    </TouchableOpacity>
+  );
+}
+
+// ─── Category Modal ───────────────────────────────────────────────────────────
+function CategoryModal({
+  category,
+  entries,
+  onClose,
+}: {
+  category: ReceiptCategory | null;
+  entries: PaidEntry[];
+  onClose: () => void;
+}) {
+  const [scrollY, setScrollY] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  const catCfg = category ? CATEGORY_CONFIG[category] : null;
+  const showThumb = contentHeight > containerHeight;
+  const thumbHeight = showThumb ? Math.max((containerHeight / contentHeight) * containerHeight, 32) : 0;
+  const thumbTop = showThumb
+    ? (scrollY / (contentHeight - containerHeight)) * (containerHeight - thumbHeight)
+    : 0;
+
+  return (
+    <Modal visible={category !== null} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <View style={styles.modalSheet}>
+          {catCfg && (
+            <View style={styles.modalHeader}>
+              <View style={[styles.modalCatIcon, { backgroundColor: catCfg.bgColor }]}>
+                <Ionicons name={catCfg.icon} size={18} color={catCfg.color} />
+              </View>
+              <Text style={styles.modalTitle}>{catCfg.label}</Text>
+            </View>
+          )}
+          <View style={styles.modalScrollContainer}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.modalScroll}
+              nestedScrollEnabled={true}
+              scrollEventThrottle={16}
+              onScroll={e => setScrollY(e.nativeEvent.contentOffset.y)}
+              onContentSizeChange={(_, h) => setContentHeight(h)}
+              onLayout={e => setContainerHeight(e.nativeEvent.layout.height)}
+            >
+              {entries.map((e, i) => (
+                <View key={i} style={styles.modalRow}>
+                  <Text style={styles.modalReceiptTitle} numberOfLines={1}>{e.title}</Text>
+                  <Text style={styles.modalReceiptAmt}>{e.currency} {e.amount.toFixed(2)}</Text>
+                </View>
+              ))}
+            </ScrollView>
+            {showThumb && (
+              <View style={styles.scrollTrack}>
+                <View style={[styles.scrollThumb, { height: thumbHeight, transform: [{ translateY: thumbTop }] }]} />
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -134,6 +201,7 @@ export default function StatsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>('month');
   const [offset, setOffset] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<ReceiptCategory | null>(null);
 
   const load = async () => {
     if (!user) return;
@@ -156,6 +224,7 @@ export default function StatsScreen() {
           currency: receipt.currency,
           scannedAt: receipt.scannedAt,
           amount: Number(participant.totalOwed),
+          title: receipt.title || 'Untitled',
         });
       });
 
@@ -321,11 +390,24 @@ export default function StatsScreen() {
                 stat={cat}
                 maxAmount={byCategory[0].amount}
                 currency={preferredCurrency}
+                onPress={() => setSelectedCategory(cat.category)}
               />
             ))}
           </View>
         )}
       </ScrollView>
+      {/* Category receipts modal */}
+      <CategoryModal
+        category={selectedCategory}
+        entries={selectedCategory ? entries.filter(e => {
+          if (e.category !== selectedCategory) return false;
+          const d = new Date(e.scannedAt);
+          if (range.start && d < range.start) return false;
+          if (range.end && d > range.end) return false;
+          return true;
+        }) : []}
+        onClose={() => setSelectedCategory(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -467,6 +549,38 @@ const styles = StyleSheet.create({
   },
   catBarFill: { height: '100%', borderRadius: 3 },
   catCount: { fontSize: 11, color: Colors.textMuted },
+
+  // Category modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', alignItems: 'center' },
+  modalSheet: {
+    width: '88%',
+    maxHeight: 420,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalScrollContainer: { flexDirection: 'row', maxHeight: 300 },
+  modalScroll: { flex: 1 },
+  scrollTrack: { width: 4, borderRadius: 2, backgroundColor: Colors.border, marginLeft: 12, marginRight: -10 },
+  scrollThumb: { width: 4, borderRadius: 2, backgroundColor: Colors.textMuted },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  modalCatIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.text },
+  modalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  modalReceiptTitle: { fontSize: 14, fontWeight: '600', color: Colors.text, flex: 1, marginRight: 12 },
+  modalReceiptAmt: { fontSize: 14, fontWeight: '700', color: Colors.textSecondary },
 
   // Empty state
   empty: { alignItems: 'center', paddingTop: 48, gap: 10 },
