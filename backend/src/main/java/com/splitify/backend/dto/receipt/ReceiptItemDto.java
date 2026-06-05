@@ -17,6 +17,5 @@ public class ReceiptItemDto {
     private BigDecimal quantity;
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
-    private Integer position;
     private List<AssignmentDto> assignments;
 }

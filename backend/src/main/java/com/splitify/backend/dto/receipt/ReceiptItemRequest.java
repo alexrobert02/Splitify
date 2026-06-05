@@ -7,7 +7,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class UpdateReceiptItemRequest {
+public class ReceiptItemRequest {
 
     @NotBlank
     private String name;

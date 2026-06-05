@@ -111,7 +111,7 @@ export default function NewRecurringScreen() {
     try {
       await api.recurring.create({
         title: title.trim(),
-        amount: parseFloat(amount),
+        totalAmount: parseFloat(amount),
         currency,
         category,
         groupId: selectedGroup?.id,

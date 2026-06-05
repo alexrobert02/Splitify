@@ -81,7 +81,7 @@ public class ReceiptController {
     @PostMapping("/{receiptId}/items")
     public ResponseEntity<ReceiptItemDto> addItem(@AuthenticationPrincipal UserDetails userDetails,
                                                    @PathVariable UUID receiptId,
-                                                   @Valid @RequestBody AddReceiptItemRequest request) {
+                                                   @Valid @RequestBody ReceiptItemRequest request) {
         log.info("ADD item receiptId={} item='{}'", receiptId, request.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(receiptService.addReceiptItem(receiptId, currentUserId(userDetails), request));
@@ -100,7 +100,7 @@ public class ReceiptController {
     public ResponseEntity<ReceiptItemDto> updateItem(@AuthenticationPrincipal UserDetails userDetails,
                                                       @PathVariable UUID receiptId,
                                                       @PathVariable UUID itemId,
-                                                      @Valid @RequestBody UpdateReceiptItemRequest request) {
+                                                      @Valid @RequestBody ReceiptItemRequest request) {
         log.info("UPDATE item receiptId={} itemId={}", receiptId, itemId);
         return ResponseEntity.ok(
             receiptService.updateReceiptItem(receiptId, itemId, currentUserId(userDetails), request));

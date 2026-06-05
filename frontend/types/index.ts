@@ -11,6 +11,7 @@ export interface UserDto {
   name: string;
   revolutTag?: string;
   preferredCurrency?: string;
+  createdAt: string;
 }
 
 export interface GroupDto {
@@ -42,24 +43,22 @@ export interface ReceiptItemDto {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  position: number;
   assignments: AssignmentDto[];
 }
 
 export interface ReceiptDto {
   id: string;
   title: string;
-  scannedById: string;
-  scannedByName: string;
-  scannedByRevolutTag?: string;
+  createdById: string;
+  createdByName: string;
+  createdByRevolutTag?: string;
   groupId: string | null;
   groupName: string | null;
   totalAmount: number;
   currency: string;
   category: ReceiptCategory;
-  finalized: boolean;
   status: ReceiptStatus;
-  scannedAt: string;
+  createdAt: string;
   items: ReceiptItemDto[];
 }
 
@@ -76,6 +75,7 @@ export interface ParticipantSummaryDto {
   totalOwed: number;
   itemBreakdown: ItemContributionDto[];
   paid: boolean;
+  paidAt?: string;
 }
 
 export interface ReceiptSummaryDto {
@@ -104,7 +104,7 @@ export interface RecurringParticipantDto {
 export interface RecurringExpenseDto {
   id: string;
   title: string;
-  amount: number;
+  totalAmount: number;
   currency: string;
   category: ReceiptCategory;
   createdById: string;

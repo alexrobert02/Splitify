@@ -1,6 +1,7 @@
 package com.splitify.backend.service;
 
-import com.splitify.backend.dto.group.*;
+import com.splitify.backend.dto.group.CreateGroupRequest;
+import com.splitify.backend.dto.group.GroupDto;
 import com.splitify.backend.dto.user.UserDto;
 import com.splitify.backend.entity.Group;
 import com.splitify.backend.entity.NotificationType;
@@ -51,12 +52,12 @@ public class GroupService {
     }
 
     @Transactional
-    public GroupDto addMember(UUID groupId, UUID currentUserId, AddMemberRequest request) {
+    public GroupDto addMember(UUID groupId, UUID currentUserId, String email) {
         Group group = findGroup(groupId);
         assertMember(group, currentUserId);
 
-        User newMember = userRepository.findByEmail(request.getEmail())
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + request.getEmail()));
+        User newMember = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
         if (group.getMembers().stream().anyMatch(u -> u.getId().equals(newMember.getId()))) {
             throw new BadRequestException("User is already a member of this group");

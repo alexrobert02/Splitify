@@ -3,7 +3,6 @@ package com.splitify.backend.service;
 import com.splitify.backend.dto.receipt.*;
 import com.splitify.backend.entity.*;
 import com.splitify.backend.entity.ReceiptStatus;
-import com.splitify.backend.repository.PaymentRepository;
 import com.splitify.backend.exception.BadRequestException;
 import com.splitify.backend.exception.ResourceNotFoundException;
 import com.splitify.backend.repository.*;
@@ -14,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,7 +26,6 @@ public class ReceiptService {
     private final ReceiptItemRepository receiptItemRepository;
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
-    private final PaymentRepository paymentRepository;
     private final OcrService ocrService;
     private final SplitCalculationService splitCalculationService;
     private final NotificationService notificationService;
@@ -48,7 +47,7 @@ public class ReceiptService {
 
         Receipt receipt = Receipt.builder()
             .title(title)
-            .scannedBy(user)
+            .createdBy(user)
             .imageBase64(base64Image)
             .imageMimeType(mimeType)
             .currency("RON")
@@ -68,7 +67,7 @@ public class ReceiptService {
     }
 
     public List<ReceiptDto> getMyReceipts(UUID currentUserId) {
-        return receiptRepository.findByScannedByIdOrderByScannedAtDesc(currentUserId)
+        return receiptRepository.findByCreatedByIdOrderByCreatedAtDesc(currentUserId)
             .stream().map(this::toDto).toList();
     }
 
@@ -78,10 +77,10 @@ public class ReceiptService {
         if (group.getMembers().stream().noneMatch(u -> u.getId().equals(currentUserId))) {
             throw new BadRequestException("You are not a member of this group");
         }
-        return receiptRepository.findByGroupIdOrderByScannedAtDesc(groupId)
+        return receiptRepository.findByGroupIdOrderByCreatedAtDesc(groupId)
             .stream()
-            .filter(r -> !unpaidOnly || (r.isFinalized() &&
-                !paymentRepository.existsByReceiptIdAndPayerId(r.getId(), currentUserId)))
+            .filter(r -> !unpaidOnly || ((r.getStatus() == ReceiptStatus.PENDING_PAYMENT || r.getStatus() == ReceiptStatus.FINALIZED) &&
+                r.getPayments().stream().noneMatch(p -> p.getPayer().getId().equals(currentUserId))))
             .map(this::toDto)
             .toList();
     }
@@ -93,7 +92,7 @@ public class ReceiptService {
     }
 
     @Transactional
-    public ReceiptItemDto addReceiptItem(UUID receiptId, UUID currentUserId, AddReceiptItemRequest request) {
+    public ReceiptItemDto addReceiptItem(UUID receiptId, UUID currentUserId, ReceiptItemRequest request) {
         Receipt receipt = findReceipt(receiptId);
         assertAccess(receipt, currentUserId);
 
@@ -107,7 +106,6 @@ public class ReceiptService {
             .quantity(qty)
             .unitPrice(price)
             .totalPrice(total)
-            .position(receipt.getItems().size())
             .build();
 
         receipt.getItems().add(item);
@@ -132,7 +130,7 @@ public class ReceiptService {
 
     @Transactional
     public ReceiptItemDto updateReceiptItem(UUID receiptId, UUID itemId, UUID currentUserId,
-                                            UpdateReceiptItemRequest request) {
+                                            ReceiptItemRequest request) {
         Receipt receipt = findReceipt(receiptId);
         assertAccess(receipt, currentUserId);
 
@@ -195,7 +193,8 @@ public class ReceiptService {
                     assignment.getUser().getEmail(),
                     BigDecimal.ZERO,
                     new ArrayList<>(),
-                    false
+                    false,
+                    null
                 ));
 
                 ParticipantSummaryDto participant = participantMap.get(uid);
@@ -207,11 +206,15 @@ public class ReceiptService {
             }
         }
 
-        Set<UUID> paidUserIds = paymentRepository.findByReceiptId(receiptId)
-            .stream().map(p -> p.getPayer().getId()).collect(Collectors.toSet());
-        participantMap.values().forEach(p -> p.setPaid(paidUserIds.contains(p.getUserId())));
+        Map<UUID, LocalDateTime> paymentTimes = receipt.getPayments()
+            .stream().collect(Collectors.toMap(p -> p.getPayer().getId(), BaseEntity::getCreatedAt));
+        participantMap.values().forEach(p -> {
+            LocalDateTime paidAt = paymentTimes.get(p.getUserId());
+            p.setPaid(paidAt != null);
+            p.setPaidAt(paidAt);
+        });
 
-        UUID scannerId = receipt.getScannedBy().getId();
+        UUID scannerId = receipt.getCreatedBy().getId();
         List<ParticipantSummaryDto> participants = participantMap.values().stream()
             .sorted(Comparator.comparing(p -> !p.getUserId().equals(scannerId)))
             .collect(Collectors.toList());
@@ -231,14 +234,14 @@ public class ReceiptService {
     public void markPaid(UUID receiptId, UUID currentUserId, UUID payerId) {
         Receipt receipt = findReceipt(receiptId);
         assertIsScanner(receipt, currentUserId);
-        if (!paymentRepository.existsByReceiptIdAndPayerId(receiptId, payerId)) {
+        if (receipt.getPayments().stream().noneMatch(p -> p.getPayer().getId().equals(payerId))) {
             User payer = findUser(payerId);
-            paymentRepository.save(Payment.builder().receipt(receipt).payer(payer).build());
+            receipt.getPayments().add(Payment.builder().receipt(receipt).payer(payer).build());
         }
-        if (allParticipantsPaid(receiptId, receipt)) {
+        if (allParticipantsPaid(receipt)) {
             receipt.setStatus(ReceiptStatus.FINALIZED);
-            receiptRepository.save(receipt);
         }
+        receiptRepository.save(receipt);
     }
 
     @Transactional
@@ -250,17 +253,16 @@ public class ReceiptService {
         if (!allAssigned) {
             throw new BadRequestException("All items must be assigned before finalizing");
         }
-        receipt.setFinalized(true);
         receipt.setStatus(ReceiptStatus.PENDING_PAYMENT);
         Receipt saved = receiptRepository.save(receipt);
 
         // Scanner paid upfront, so auto-mark them as paid
-        if (!paymentRepository.existsByReceiptIdAndPayerId(receiptId, currentUserId)) {
-            paymentRepository.save(Payment.builder().receipt(saved).payer(saved.getScannedBy()).build());
+        if (saved.getPayments().stream().noneMatch(p -> p.getPayer().getId().equals(currentUserId))) {
+            saved.getPayments().add(Payment.builder().receipt(saved).payer(saved.getCreatedBy()).build());
         }
 
         // If the scanner is the only participant, settle immediately
-        if (allParticipantsPaid(receiptId, saved)) {
+        if (allParticipantsPaid(saved)) {
             saved.setStatus(ReceiptStatus.FINALIZED);
             receiptRepository.save(saved);
         }
@@ -275,7 +277,7 @@ public class ReceiptService {
                 participant,
                 NotificationType.PAYMENT_REQUESTED,
                 "Payment requested",
-                saved.getScannedBy().getName() + " requests payment for \"" + saved.getTitle() + "\"",
+                saved.getCreatedBy().getName() + " requests payment for \"" + saved.getTitle() + "\"",
                 saved.getId().toString()
             ));
 
@@ -323,7 +325,7 @@ public class ReceiptService {
 
         Receipt receipt = Receipt.builder()
             .title(title)
-            .scannedBy(user)
+            .createdBy(user)
             .currency(resolvedCurrency)
             .totalAmount(BigDecimal.ZERO)
             .category(receiptCategory)
@@ -345,7 +347,7 @@ public class ReceiptService {
         assertAccess(receipt, currentUserId);
         if (receipt.getStatus() == ReceiptStatus.PENDING_REVIEW) {
             if (receipt.getGroup() == null) {
-                autoFinalizePersonalReceipt(receipt, receipt.getScannedBy());
+                autoFinalizePersonalReceipt(receipt, receipt.getCreatedBy());
                 receiptRepository.save(receipt);
             } else {
                 receipt.setStatus(ReceiptStatus.PENDING_ASSIGNMENT);
@@ -365,9 +367,8 @@ public class ReceiptService {
                 .build();
             item.getAssignments().add(assignment);
         }
-        receipt.setFinalized(true);
         receipt.setStatus(ReceiptStatus.FINALIZED);
-        paymentRepository.save(Payment.builder().receipt(receipt).payer(user).build());
+        receipt.getPayments().add(Payment.builder().receipt(receipt).payer(user).build());
     }
 
     private void populateFromOcr(Receipt receipt, OcrService.OcrResult result) {
@@ -394,7 +395,6 @@ public class ReceiptService {
                     .quantity(ocrItem.getQuantity() != null ? ocrItem.getQuantity() : BigDecimal.ONE)
                     .unitPrice(ocrItem.getUnitPrice())
                     .totalPrice(ocrItem.getTotalPrice())
-                    .position(i)
                     .build();
                 items.add(item);
             }
@@ -439,25 +439,25 @@ public class ReceiptService {
     }
 
     private void assertAccess(Receipt receipt, UUID userId) {
-        if (receipt.getScannedBy().getId().equals(userId)) return;
+        if (receipt.getCreatedBy().getId().equals(userId)) return;
         if (receipt.getGroup() != null &&
                 receipt.getGroup().getMembers().stream().anyMatch(u -> u.getId().equals(userId))) return;
         throw new BadRequestException("You do not have access to this receipt");
     }
 
     private void assertIsScanner(Receipt receipt, UUID userId) {
-        if (!receipt.getScannedBy().getId().equals(userId)) {
+        if (!receipt.getCreatedBy().getId().equals(userId)) {
             throw new BadRequestException("Only the receipt owner can mark payments");
         }
     }
 
-    private boolean allParticipantsPaid(UUID receiptId, Receipt receipt) {
+    private boolean allParticipantsPaid(Receipt receipt) {
         Set<UUID> assigneeIds = receipt.getItems().stream()
             .flatMap(item -> item.getAssignments().stream())
             .map(a -> a.getUser().getId())
             .collect(Collectors.toSet());
-        Set<UUID> paidIds = paymentRepository.findByReceiptId(receiptId)
-            .stream().map(p -> p.getPayer().getId()).collect(Collectors.toSet());
+        Set<UUID> paidIds = receipt.getPayments().stream()
+            .map(p -> p.getPayer().getId()).collect(Collectors.toSet());
         return !assigneeIds.isEmpty() && paidIds.containsAll(assigneeIds);
     }
 
@@ -470,17 +470,16 @@ public class ReceiptService {
         return new ReceiptDto(
             receipt.getId(),
             receipt.getTitle(),
-            receipt.getScannedBy().getId(),
-            receipt.getScannedBy().getName(),
-            receipt.getScannedBy().getRevolutTag(),
+            receipt.getCreatedBy().getId(),
+            receipt.getCreatedBy().getName(),
+            receipt.getCreatedBy().getRevolutTag(),
             receipt.getGroup() != null ? receipt.getGroup().getId() : null,
             receipt.getGroup() != null ? receipt.getGroup().getName() : null,
             receipt.getTotalAmount(),
             receipt.getCurrency(),
             receipt.getCategory(),
-            receipt.isFinalized(),
             receipt.getStatus(),
-            receipt.getScannedAt(),
+            receipt.getCreatedAt(),
             itemDtos
         );
     }
@@ -503,7 +502,6 @@ public class ReceiptService {
             item.getQuantity(),
             item.getUnitPrice(),
             item.getTotalPrice(),
-            item.getPosition(),
             assignments
         );
     }

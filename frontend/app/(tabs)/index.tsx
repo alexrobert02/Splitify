@@ -111,7 +111,7 @@ function StatusFilterButton({
 }
 
 function ReceiptCard({ receipt }: { receipt: ReceiptDto }) {
-  const date = new Date(receipt.scannedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const date = new Date(receipt.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const destination = receipt.status === 'PENDING_REVIEW'
     ? `/receipt/review?id=${receipt.id}`
     : `/receipt/${receipt.id}`;
@@ -354,7 +354,7 @@ function SoloView({ onBack }: { onBack: () => void }) {
   const load = async () => {
     try {
       const all = await api.receipts.list();
-      setReceipts(all.filter((r) => !r.groupId).sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime()));
+      setReceipts(all.filter((r) => !r.groupId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {
@@ -450,7 +450,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
         api.receipts.listByGroup(id, unpaid),
       ]);
       setGroup(g);
-      setReceipts(r.sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime()));
+      setReceipts(r.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {

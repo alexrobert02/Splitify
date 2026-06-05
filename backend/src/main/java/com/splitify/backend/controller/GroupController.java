@@ -1,6 +1,5 @@
 package com.splitify.backend.controller;
 
-import com.splitify.backend.dto.group.AddMemberRequest;
 import com.splitify.backend.dto.group.CreateGroupRequest;
 import com.splitify.backend.dto.group.GroupDto;
 import com.splitify.backend.service.GroupService;
@@ -43,8 +42,8 @@ public class GroupController {
     @PostMapping("/{groupId}/members")
     public ResponseEntity<GroupDto> addMember(@AuthenticationPrincipal UserDetails userDetails,
                                                @PathVariable UUID groupId,
-                                               @Valid @RequestBody AddMemberRequest request) {
-        return ResponseEntity.ok(groupService.addMember(groupId, currentUserId(userDetails), request));
+                                               @RequestBody String email) {
+        return ResponseEntity.ok(groupService.addMember(groupId, currentUserId(userDetails), email));
     }
 
     @DeleteMapping("/{groupId}/members/{userId}")

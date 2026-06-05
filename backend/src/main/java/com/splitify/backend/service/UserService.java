@@ -1,6 +1,5 @@
 package com.splitify.backend.service;
 
-import com.splitify.backend.dto.user.UpdatePushTokenRequest;
 import com.splitify.backend.dto.user.UpdateUserRequest;
 import com.splitify.backend.dto.user.UserDto;
 import com.splitify.backend.entity.User;
@@ -46,8 +45,7 @@ public class UserService {
     }
 
     @Transactional
-    public void addPushToken(UUID userId, UpdatePushTokenRequest request) {
-        String token = request.getPushToken();
+    public void addPushToken(UUID userId, String token) {
         if (token == null || token.isBlank()) return;
 
         userRepository.deleteTokenFromOtherUsers(token, userId);
@@ -58,8 +56,7 @@ public class UserService {
     }
 
     @Transactional
-    public void removePushToken(UUID userId, UpdatePushTokenRequest request) {
-        String token = request.getPushToken();
+    public void removePushToken(UUID userId, String token) {
         if (token == null || token.isBlank()) return;
 
         User user = findUser(userId);

@@ -2,11 +2,9 @@ package com.splitify.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.experimental.SuperBuilder;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -16,33 +14,12 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class RecurringExpense {
+@SuperBuilder
+public class RecurringExpense extends AbstractExpense {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-
-    @Column(nullable = false)
-    private String title;
-
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal amount;
-
-    @Column(length = 3, nullable = false)
-    private String currency;
-
-    @Enumerated(EnumType.STRING)
-    private ReceiptCategory category;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
-    private User createdBy;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
-    private Group group;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -58,7 +35,4 @@ public class RecurringExpense {
     @OneToMany(mappedBy = "recurringExpense", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<RecurringParticipant> participants = new ArrayList<>();
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
 }

@@ -90,7 +90,7 @@ function getRange(period: Period, offset: number): DateRange {
 interface PaidEntry {
   category: ReceiptCategory;
   currency: string;
-  scannedAt: string;
+  paidAt: string;
   amount: number;
   title: string;
 }
@@ -207,7 +207,7 @@ export default function StatsScreen() {
     if (!user) return;
     try {
       const receipts = await api.receipts.list();
-      const finalized = receipts.filter(r => r.finalized);
+      const finalized = receipts.filter(r => r.status === 'PENDING_PAYMENT' || r.status === 'FINALIZED');
 
       const summaries = await Promise.all(
         finalized.map(r => api.receipts.summary(r.id).catch(() => null))
@@ -218,11 +218,11 @@ export default function StatsScreen() {
         if (!summary) return;
         const receipt = finalized[i];
         const participant = summary.participants.find(p => p.userId === user.id && p.paid);
-        if (!participant) return;
+        if (!participant || !participant.paidAt) return;
         result.push({
           category: receipt.category,
           currency: receipt.currency,
-          scannedAt: receipt.scannedAt,
+          paidAt: participant.paidAt,
           amount: Number(participant.totalOwed),
           title: receipt.title || 'Untitled',
         });
@@ -251,7 +251,7 @@ export default function StatsScreen() {
 
   const { total, byCategory, isMixed } = useMemo(() => {
     const filtered = entries.filter(e => {
-      const d = new Date(e.scannedAt);
+      const d = new Date(e.paidAt);
       if (range.start && d < range.start) return false;
       if (range.end && d > range.end) return false;
       return true;
@@ -401,7 +401,7 @@ export default function StatsScreen() {
         category={selectedCategory}
         entries={selectedCategory ? entries.filter(e => {
           if (e.category !== selectedCategory) return false;
-          const d = new Date(e.scannedAt);
+          const d = new Date(e.paidAt);
           if (range.start && d < range.start) return false;
           if (range.end && d > range.end) return false;
           return true;

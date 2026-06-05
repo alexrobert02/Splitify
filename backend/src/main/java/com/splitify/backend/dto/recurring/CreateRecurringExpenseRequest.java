@@ -20,7 +20,7 @@ public class CreateRecurringExpenseRequest {
 
     @NotNull
     @Positive
-    private BigDecimal amount;
+    private BigDecimal totalAmount;
 
     @NotBlank
     private String currency;
@@ -37,5 +37,5 @@ public class CreateRecurringExpenseRequest {
 
     @Valid
     @NotNull
-    private List<RecurringParticipantRequest> participants;
+    private List<RecurringParticipantDto> participants;
 }

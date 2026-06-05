@@ -2,6 +2,7 @@ package com.splitify.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -13,9 +14,8 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class ReceiptItem {
+@SuperBuilder
+public class ReceiptItem extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -36,8 +36,6 @@ public class ReceiptItem {
 
     @Column(precision = 10, scale = 2)
     private BigDecimal totalPrice;
-
-    private Integer position;
 
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

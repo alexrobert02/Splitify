@@ -7,6 +7,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ReceiptRepository extends JpaRepository<Receipt, UUID> {
-    List<Receipt> findByScannedByIdOrderByScannedAtDesc(UUID userId);
-    List<Receipt> findByGroupIdOrderByScannedAtDesc(UUID groupId);
+    List<Receipt> findByCreatedByIdOrderByCreatedAtDesc(UUID userId);
+    List<Receipt> findByGroupIdOrderByCreatedAtDesc(UUID groupId);
 }

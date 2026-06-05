@@ -1,6 +1,5 @@
 package com.splitify.backend.controller;
 
-import com.splitify.backend.dto.user.UpdatePushTokenRequest;
 import com.splitify.backend.dto.user.UpdateUserRequest;
 import com.splitify.backend.dto.user.UserDto;
 import com.splitify.backend.service.UserService;
@@ -33,15 +32,15 @@ public class UserController {
 
     @PutMapping("/me/push-token")
     public ResponseEntity<Void> addPushToken(@AuthenticationPrincipal UserDetails userDetails,
-                                              @RequestBody UpdatePushTokenRequest request) {
-        userService.addPushToken(currentUserId(userDetails), request);
+                                              @RequestBody String pushToken) {
+        userService.addPushToken(currentUserId(userDetails), pushToken);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/me/push-token")
     public ResponseEntity<Void> removePushToken(@AuthenticationPrincipal UserDetails userDetails,
-                                                 @RequestBody UpdatePushTokenRequest request) {
-        userService.removePushToken(currentUserId(userDetails), request);
+                                                 @RequestBody String pushToken) {
+        userService.removePushToken(currentUserId(userDetails), pushToken);
         return ResponseEntity.noContent().build();
     }
 

@@ -17,16 +17,15 @@ import java.util.UUID;
 public class ReceiptDto {
     private UUID id;
     private String title;
-    private UUID scannedById;
-    private String scannedByName;
-    private String scannedByRevolutTag;
+    private UUID createdById;
+    private String createdByName;
+    private String createdByRevolutTag;
     private UUID groupId;
     private String groupName;
     private BigDecimal totalAmount;
     private String currency;
     private ReceiptCategory category;
-    private boolean finalized;
     private ReceiptStatus status;
-    private LocalDateTime scannedAt;
+    private LocalDateTime createdAt;
     private List<ReceiptItemDto> items;
 }

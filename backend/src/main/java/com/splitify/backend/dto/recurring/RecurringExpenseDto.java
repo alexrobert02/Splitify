@@ -20,7 +20,7 @@ import java.util.UUID;
 public class RecurringExpenseDto {
     private UUID id;
     private String title;
-    private BigDecimal amount;
+    private BigDecimal totalAmount;
     private String currency;
     private ReceiptCategory category;
     private UUID createdById;

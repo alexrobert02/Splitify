@@ -2,9 +2,8 @@ package com.splitify.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -14,9 +13,8 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class Group {
+@SuperBuilder
+public class Group extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -39,7 +37,4 @@ public class Group {
     )
     @Builder.Default
     private List<User> members = new ArrayList<>();
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
 }

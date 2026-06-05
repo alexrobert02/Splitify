@@ -69,7 +69,7 @@ function RecurringCard({
 
         <View style={styles.cardRight}>
           <Text style={styles.cardAmount}>
-            {item.currency} {Number(item.amount).toFixed(2)}
+            {item.currency} {Number(item.totalAmount).toFixed(2)}
           </Text>
           <View style={styles.actions}>
             <TouchableOpacity

@@ -52,7 +52,7 @@ function ReceiptMeta({ receipt, currency }: { receipt: ReceiptDto; currency: str
           <View style={styles.metaDivider} />
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>Scanned by</Text>
-            <Text style={styles.metaValue}>{receipt.scannedByName}</Text>
+            <Text style={styles.metaValue}>{receipt.createdByName}</Text>
           </View>
         </>
       )}
@@ -289,7 +289,7 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
   };
 
   const currency = summary?.currency ?? receipt.currency ?? 'RON';
-  const isScanner = user?.id === receipt.scannedById;
+  const isScanner = user?.id === receipt.createdById;
 
   return (
     <ScrollView contentContainerStyle={styles.summaryContent}>
@@ -299,7 +299,7 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
         : summary?.participants.map(p => {
         const isCurrentUser = p.userId === user?.id;
         const owesPayment = isCurrentUser && !isScanner && p.totalOwed > 0;
-        const canPayRevolut = owesPayment && !!receipt.scannedByRevolutTag;
+        const canPayRevolut = owesPayment && !!receipt.createdByRevolutTag;
 
         return (
           <View key={p.userId} style={styles.participantCard}>
@@ -348,10 +348,10 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
               <TouchableOpacity
                 style={styles.revolutBtn}
                 onPress={() => openRevolutPay(
-                  receipt.scannedByRevolutTag!,
+                  receipt.createdByRevolutTag!,
                   p.totalOwed,
                   currency,
-                  receipt.scannedByName,
+                  receipt.createdByName,
                 )}
               >
                 <Ionicons name="card-outline" size={15} color="#fff" />
@@ -452,7 +452,7 @@ export default function ReceiptDetailScreen() {
   if (!receipt) return null;
 
   const currency = receipt.currency ?? 'RON';
-  const isScanner = user?.id === receipt.scannedById;
+  const isScanner = user?.id === receipt.createdById;
   const allAssigned = (receipt.items?.length ?? 0) > 0 &&
     receipt.items.every(item => (item.assignments?.length ?? 0) > 0);
 
@@ -466,7 +466,7 @@ export default function ReceiptDetailScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      {receipt.finalized ? (
+      {(receipt.status === 'PENDING_PAYMENT' || receipt.status === 'FINALIZED') ? (
         <SummaryTab receipt={receipt} />
       ) : (
         <View style={{ flex: 1 }}>

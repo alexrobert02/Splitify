@@ -2,9 +2,8 @@ package com.splitify.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -14,9 +13,8 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class User {
+@SuperBuilder
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -46,7 +44,4 @@ public class User {
     @Column(name = "token", nullable = false)
     @Builder.Default
     private Set<String> pushTokens = new HashSet<>();
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
 }

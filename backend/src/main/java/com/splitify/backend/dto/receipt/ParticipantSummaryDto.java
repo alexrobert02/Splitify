@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ public class ParticipantSummaryDto {
     private BigDecimal totalOwed;
     private List<ItemContributionDto> itemBreakdown;
     private boolean paid;
+    private LocalDateTime paidAt;
 
     @Data
     @NoArgsConstructor

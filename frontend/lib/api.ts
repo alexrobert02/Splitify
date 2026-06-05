@@ -78,12 +78,12 @@ export const api = {
     updatePushToken: (pushToken: string) =>
       request<void>('/api/users/me/push-token', {
         method: 'PUT',
-        body: JSON.stringify({ pushToken }),
+        body: JSON.stringify(pushToken),
       }),
     clearPushToken: (pushToken: string) =>
       request<void>('/api/users/me/push-token', {
         method: 'DELETE',
-        body: JSON.stringify({ pushToken }),
+        body: JSON.stringify(pushToken),
       }),
   },
 
@@ -105,7 +105,7 @@ export const api = {
     addMember: (groupId: string, email: string) =>
       request<GroupDto>(`/api/groups/${groupId}/members`, {
         method: 'POST',
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(email),
       }),
     removeMember: (groupId: string, userId: string) =>
       request<void>(`/api/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
@@ -194,7 +194,7 @@ export const api = {
     get: (id: string) => request<RecurringExpenseDto>(`/api/recurring/${id}`),
     create: (data: {
       title: string;
-      amount: number;
+      totalAmount: number;
       currency: string;
       category?: string;
       groupId?: string;

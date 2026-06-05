@@ -28,7 +28,6 @@ public class RecurringExpenseService {
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
     private final ReceiptRepository receiptRepository;
-    private final PaymentRepository paymentRepository;
     private final NotificationService notificationService;
     private final SplitCalculationService splitCalculationService;
 
@@ -49,7 +48,7 @@ public class RecurringExpenseService {
 
         RecurringExpense expense = RecurringExpense.builder()
             .title(request.getTitle())
-            .amount(request.getAmount())
+            .totalAmount(request.getTotalAmount())
             .currency(request.getCurrency().toUpperCase())
             .category(request.getCategory())
             .createdBy(creator)
@@ -64,7 +63,7 @@ public class RecurringExpenseService {
         }
 
         List<RecurringParticipant> participants = new ArrayList<>();
-        for (RecurringParticipantRequest p : request.getParticipants()) {
+        for (RecurringParticipantDto p : request.getParticipants()) {
             User user = findUser(p.getUserId());
             participants.add(RecurringParticipant.builder()
                 .recurringExpense(expense)
@@ -144,22 +143,20 @@ public class RecurringExpenseService {
     private void createReceiptFromExpense(RecurringExpense expense) {
         Receipt receipt = Receipt.builder()
             .title(expense.getTitle())
-            .scannedBy(expense.getCreatedBy())
+            .createdBy(expense.getCreatedBy())
             .group(expense.getGroup())
-            .totalAmount(expense.getAmount())
+            .totalAmount(expense.getTotalAmount())
             .currency(expense.getCurrency())
             .category(expense.getCategory())
             .status(ReceiptStatus.PENDING_PAYMENT)
-            .finalized(true)
             .build();
 
         ReceiptItem item = ReceiptItem.builder()
             .receipt(receipt)
             .name(expense.getTitle())
             .quantity(BigDecimal.ONE)
-            .unitPrice(expense.getAmount())
-            .totalPrice(expense.getAmount())
-            .position(0)
+            .unitPrice(expense.getTotalAmount())
+            .totalPrice(expense.getTotalAmount())
             .build();
 
         List<RecurringParticipant> participants = expense.getParticipants();
@@ -176,18 +173,16 @@ public class RecurringExpenseService {
         item.getAssignments().addAll(assignments);
         receipt.getItems().add(item);
 
-        receiptRepository.save(receipt);
-
         // Creator paid upfront — auto-mark as paid
-        paymentRepository.save(Payment.builder().receipt(receipt).payer(expense.getCreatedBy()).build());
+        receipt.getPayments().add(Payment.builder().receipt(receipt).payer(expense.getCreatedBy()).build());
 
         // If creator is the only participant, settle immediately
         boolean onlyCreator = participants.stream()
             .allMatch(p -> p.getUser().getId().equals(expense.getCreatedBy().getId()));
         if (onlyCreator) {
             receipt.setStatus(ReceiptStatus.FINALIZED);
-            receiptRepository.save(receipt);
         }
+        receiptRepository.save(receipt);
 
         String receiptIdStr = receipt.getId().toString();
         participants.stream()
@@ -225,7 +220,7 @@ public class RecurringExpenseService {
         return RecurringExpenseDto.builder()
             .id(e.getId())
             .title(e.getTitle())
-            .amount(e.getAmount())
+            .totalAmount(e.getTotalAmount())
             .currency(e.getCurrency())
             .category(e.getCategory())
             .createdById(e.getCreatedBy().getId())
