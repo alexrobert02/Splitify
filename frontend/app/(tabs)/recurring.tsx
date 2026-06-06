@@ -199,7 +199,7 @@ export default function RecurringScreen() {
         onPress={() => router.push('/recurring/new' as any)}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={18} color="#fff" />
+        <Ionicons name="add" size={20} color="#fff" />
         <Text style={styles.fabText}>New Recurring</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -224,18 +224,18 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
     right: 20,
     backgroundColor: c.primary,
     borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
-  fabText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  fabText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
   list: { padding: 20, gap: 10, paddingBottom: 90 },
   emptyContainer: { padding: 20 },

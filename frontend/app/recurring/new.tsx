@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { useTheme, type ColorPalette } from '@/context/ThemeContext';
-import { CurrencyPickerModal, CurrencySelector } from '@/components/CurrencyPickerModal';
+import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
 import { CategoryPickerModal, CategorySelector } from '@/components/CategoryPickerModal';
 import { useAuth } from '@/context/AuthContext';
 import type { GroupDto, UserDto, ReceiptCategory, RecurrenceFrequency, SplitType } from '@/types';
@@ -30,79 +30,56 @@ const FREQUENCIES: { value: RecurrenceFrequency; label: string }[] = [
 ];
 
 const SPLIT_TYPES: { value: SplitType; label: string; hint: string }[] = [
-  { value: 'EQUAL',      label: 'Equal',      hint: 'Split evenly' },
-  { value: 'PERCENTAGE', label: '%',           hint: 'Must sum to 100' },
-  { value: 'FIXED',      label: 'Fixed',       hint: 'Must sum to total' },
+  { value: 'EQUAL',      label: 'Equal',   hint: 'Split evenly' },
+  { value: 'PERCENTAGE', label: 'Percent', hint: 'Must sum to 100%' },
+  { value: 'FIXED',      label: 'Fixed',   hint: 'Must sum to total' },
 ];
 
-interface ParticipantEntry {
-  user: UserDto;
-  splitValue: string;
-}
-
-function FieldLabel({ label }: { label: string }) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => getStyles(colors), [colors]);
-  return <Text style={styles.fieldLabel}>{label}</Text>;
-}
+interface ParticipantEntry { user: UserDto; splitValue: string }
 
 export default function NewRecurringScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
-  const [title, setTitle]             = useState('');
-  const [amount, setAmount]           = useState('');
-  const [currency, setCurrency]       = useState('RON');
-  const [currencyModal, setCurrencyModal] = useState(false);
-  const [category, setCategory]       = useState<ReceiptCategory>('UTILITIES');
-  const [categoryModal, setCategoryModal] = useState(false);
-  const [frequency, setFrequency]     = useState<RecurrenceFrequency>('MONTHLY');
-  const [startDate, setStartDate]     = useState(() => new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [splitType, setSplitType]     = useState<SplitType>('EQUAL');
 
-  const [groups, setGroups]               = useState<GroupDto[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<GroupDto | null>(null);
-  const [participants, setParticipants]   = useState<ParticipantEntry[]>([]);
-  const [saving, setSaving]               = useState(false);
+  const [title, setTitle]                   = useState('');
+  const [amount, setAmount]                 = useState('');
+  const [currency, setCurrency]             = useState('RON');
+  const [currencyModal, setCurrencyModal]   = useState(false);
+  const [category, setCategory]             = useState<ReceiptCategory>('UTILITIES');
+  const [categoryModal, setCategoryModal]   = useState(false);
+  const [frequency, setFrequency]           = useState<RecurrenceFrequency>('MONTHLY');
+  const [startDate, setStartDate]           = useState(() => new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [splitType, setSplitType]           = useState<SplitType>('EQUAL');
+  const [groups, setGroups]                 = useState<GroupDto[]>([]);
+  const [selectedGroup, setSelectedGroup]   = useState<GroupDto | null>(null);
+  const [participants, setParticipants]     = useState<ParticipantEntry[]>([]);
+  const [saving, setSaving]                 = useState(false);
   const { user } = useAuth();
 
-  useEffect(() => {
-    api.groups.list().then(setGroups).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (user) setParticipants([{ user: user as UserDto, splitValue: '' }]);
-  }, [user]);
+  useEffect(() => { api.groups.list().then(setGroups).catch(() => {}); }, []);
+  useEffect(() => { if (user) setParticipants([{ user: user as UserDto, splitValue: '' }]); }, [user]);
 
   const handleGroupSelect = (group: GroupDto | null) => {
     setSelectedGroup(group);
-    if (group) {
-      setParticipants(group.members.map(m => ({ user: m, splitValue: '' })));
-    } else if (user) {
-      setParticipants([{ user: user as UserDto, splitValue: '' }]);
-    }
-  };
-
-  const updateSplitValue = (idx: number, value: string) => {
-    setParticipants(prev => prev.map((p, i) => (i === idx ? { ...p, splitValue: value } : p)));
-  };
-
-  const removeParticipant = (idx: number) => {
-    setParticipants(prev => prev.filter((_, i) => i !== idx));
+    setParticipants(
+      group
+        ? group.members.map(m => ({ user: m, splitValue: '' }))
+        : user ? [{ user: user as UserDto, splitValue: '' }] : []
+    );
   };
 
   const validate = (): string | null => {
-    if (!title.trim())                           return 'Title is required';
+    if (!title.trim()) return 'Title is required';
     const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 0)                  return 'Enter a valid positive amount';
-    if (participants.length === 0)               return 'At least one participant is required';
-
+    if (isNaN(amt) || amt <= 0) return 'Enter a valid positive amount';
+    if (participants.length === 0) return 'At least one participant is required';
     if (splitType === 'PERCENTAGE') {
-      const total = participants.reduce((s, p) => s + (parseFloat(p.splitValue) || 0), 0);
-      if (Math.abs(total - 100) > 0.01)          return `Percentages must sum to 100 (got ${total})`;
+      const sum = participants.reduce((s, p) => s + (parseFloat(p.splitValue) || 0), 0);
+      if (Math.abs(sum - 100) > 0.01) return `Percentages must sum to 100 (got ${sum})`;
     } else if (splitType === 'FIXED') {
-      const total = participants.reduce((s, p) => s + (parseFloat(p.splitValue) || 0), 0);
-      if (Math.abs(total - amt) > 0.01)          return `Fixed amounts must sum to ${amt} (got ${total.toFixed(2)})`;
+      const sum = participants.reduce((s, p) => s + (parseFloat(p.splitValue) || 0), 0);
+      if (Math.abs(sum - parseFloat(amount)) > 0.01) return `Fixed amounts must sum to ${amount} (got ${sum.toFixed(2)})`;
     }
     return null;
   };
@@ -110,7 +87,6 @@ export default function NewRecurringScreen() {
   const handleSave = async () => {
     const err = validate();
     if (err) { Alert.alert('Check your inputs', err); return; }
-
     setSaving(true);
     try {
       await api.recurring.create({
@@ -138,7 +114,7 @@ export default function NewRecurringScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Recurring Expense</Text>
@@ -148,8 +124,8 @@ export default function NewRecurringScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-          <View style={styles.fieldGroup}>
-            <FieldLabel label="Title" />
+          <View>
+            <Text style={styles.label}>Title</Text>
             <TextInput
               style={styles.input}
               value={title}
@@ -160,8 +136,8 @@ export default function NewRecurringScreen() {
           </View>
 
           <View style={styles.row}>
-            <View style={[styles.fieldGroup, styles.flex]}>
-              <FieldLabel label="Amount" />
+            <View style={styles.flex}>
+              <Text style={styles.label}>Amount</Text>
               <TextInput
                 style={styles.input}
                 value={amount}
@@ -171,44 +147,46 @@ export default function NewRecurringScreen() {
                 keyboardType="decimal-pad"
               />
             </View>
-            <View style={[styles.fieldGroup, { width: 130 }]}>
-              <FieldLabel label="Currency" />
-              <CurrencySelector
-                value={currency}
-                onPress={() => setCurrencyModal(true)}
-              />
+            <View style={{ width: 120 }}>
+              <Text style={styles.label}>Currency</Text>
+              <TouchableOpacity style={styles.currencyBtn} onPress={() => setCurrencyModal(true)} activeOpacity={0.7}>
+                <Ionicons name="globe-outline" size={15} color={colors.primary} />
+                <Text style={styles.currencyBtnText}>{currency}</Text>
+                <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
+              </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.fieldGroup}>
-            <FieldLabel label="Category" />
+          <View>
+            <Text style={styles.label}>Category</Text>
             <CategorySelector value={category} onPress={() => setCategoryModal(true)} />
           </View>
 
-          <View style={styles.fieldGroup}>
-            <FieldLabel label="Frequency" />
-            <View style={styles.segmentRow}>
+          <View>
+            <Text style={styles.label}>Frequency</Text>
+            <View style={styles.chipRow}>
               {FREQUENCIES.map(f => {
                 const active = frequency === f.value;
                 return (
                   <TouchableOpacity
                     key={f.value}
-                    style={[styles.segment, active && styles.segmentActive]}
+                    style={[styles.chip, active && styles.chipActive]}
                     onPress={() => setFrequency(f.value)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{f.label}</Text>
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
           </View>
 
-          <View style={styles.fieldGroup}>
-            <FieldLabel label="Start date" />
-            <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)} activeOpacity={0.7}>
-              <Text style={{ color: colors.text, fontSize: 15 }}>
-                {startDate.toLocaleDateString('en-CA')}
+          <View>
+            <Text style={styles.label}>Start Date</Text>
+            <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(true)} activeOpacity={0.7}>
+              <Ionicons name="calendar-outline" size={16} color={colors.textMuted} />
+              <Text style={styles.dateBtnText}>
+                {startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </Text>
             </TouchableOpacity>
             {showDatePicker && (
@@ -225,28 +203,26 @@ export default function NewRecurringScreen() {
             )}
           </View>
 
-          <View style={styles.fieldGroup}>
-            <FieldLabel label="Group" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={{ gap: 8 }}>
+          <View>
+            <Text style={styles.label}>Group</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
               <TouchableOpacity
-                style={[styles.groupChip, selectedGroup === null && styles.groupChipActive]}
+                style={[styles.chip, selectedGroup === null && styles.chipActive]}
                 onPress={() => handleGroupSelect(null)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="person-outline" size={14} color={selectedGroup === null ? '#fff' : colors.textMuted} />
-                <Text style={[styles.groupChipText, selectedGroup === null && styles.groupChipTextActive]}>None</Text>
+                <Text style={[styles.chipText, selectedGroup === null && styles.chipTextActive]}>Solo</Text>
               </TouchableOpacity>
               {groups.map(g => {
                 const active = selectedGroup?.id === g.id;
                 return (
                   <TouchableOpacity
                     key={g.id}
-                    style={[styles.groupChip, active && styles.groupChipActive]}
+                    style={[styles.chip, active && styles.chipActive]}
                     onPress={() => handleGroupSelect(g)}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="people-outline" size={14} color={active ? '#fff' : colors.textMuted} />
-                    <Text style={[styles.groupChipText, active && styles.groupChipTextActive]}>{g.name}</Text>
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{g.name}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -255,53 +231,51 @@ export default function NewRecurringScreen() {
 
           {selectedGroup !== null && participants.length > 0 && (
             <>
-              <View style={styles.fieldGroup}>
-                <FieldLabel label="Split type" />
-                <View style={styles.segmentRow}>
+              <View>
+                <Text style={styles.label}>Split type</Text>
+                <View style={styles.chipRow}>
                   {SPLIT_TYPES.map(s => {
                     const active = splitType === s.value;
                     return (
                       <TouchableOpacity
                         key={s.value}
-                        style={[styles.segment, active && styles.segmentActive]}
+                        style={[styles.chip, active && styles.chipActive]}
                         onPress={() => setSplitType(s.value)}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{s.label}</Text>
+                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{s.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-                <Text style={styles.splitHint}>
-                  {SPLIT_TYPES.find(s => s.value === splitType)?.hint}
-                </Text>
+                <Text style={styles.hint}>{SPLIT_TYPES.find(s => s.value === splitType)?.hint}</Text>
               </View>
 
-              <View style={styles.fieldGroup}>
-                <FieldLabel label="Participants" />
+              <View>
+                <Text style={styles.label}>Participants</Text>
                 <View style={styles.participantList}>
                   {participants.map((p, idx) => (
-                    <View key={p.user.id} style={styles.participantRow}>
-                      <View style={styles.participantAvatar}>
-                        <Text style={styles.participantInitial}>
-                          {p.user.name.charAt(0).toUpperCase()}
-                        </Text>
+                    <View
+                      key={p.user.id}
+                      style={[styles.participantRow, idx < participants.length - 1 && styles.participantBorder]}
+                    >
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>{p.user.name.charAt(0).toUpperCase()}</Text>
                       </View>
                       <Text style={styles.participantName} numberOfLines={1}>{p.user.name}</Text>
-                      {splitType !== 'EQUAL' && (
+                      {splitType !== 'EQUAL' ? (
                         <TextInput
                           style={styles.splitInput}
                           value={p.splitValue}
-                          onChangeText={v => updateSplitValue(idx, v)}
+                          onChangeText={v => setParticipants(prev => prev.map((e, i) => i === idx ? { ...e, splitValue: v } : e))}
                           placeholder={splitType === 'PERCENTAGE' ? '%' : currency}
                           placeholderTextColor={colors.textMuted}
                           keyboardType="decimal-pad"
                         />
-                      )}
-                      {splitType === 'EQUAL' && (
+                      ) : (
                         <Text style={styles.equalBadge}>Equal</Text>
                       )}
-                      <TouchableOpacity onPress={() => removeParticipant(idx)} hitSlop={8}>
+                      <TouchableOpacity onPress={() => setParticipants(prev => prev.filter((_, i) => i !== idx))} hitSlop={8}>
                         <Ionicons name="close-circle" size={18} color={colors.textMuted} />
                       </TouchableOpacity>
                     </View>
@@ -311,7 +285,6 @@ export default function NewRecurringScreen() {
             </>
           )}
 
-          <View style={{ height: 16 }} />
         </ScrollView>
 
         <View style={styles.footer}>
@@ -363,7 +336,7 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
     borderBottomColor: c.border,
     backgroundColor: c.surface,
   },
-  headerBtn: {
+  backBtn: {
     width: 40,
     height: 40,
     borderRadius: 10,
@@ -373,64 +346,68 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: '700', color: c.text },
 
-  content: { padding: 16, gap: 4 },
+  content: { padding: 20, gap: 18, paddingBottom: 24 },
 
-  fieldGroup: { gap: 6, marginBottom: 16 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: c.textSecondary },
+  row: { flexDirection: 'row', gap: 12 },
 
-  row: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  label: { fontSize: 13, fontWeight: '600', color: c.text, marginBottom: 6 },
 
   input: {
     borderWidth: 1.5,
     borderColor: c.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
     color: c.text,
     backgroundColor: c.surface,
   },
 
-  categoryScroll: { marginTop: 2 },
-
-  groupChip: {
+  currencyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: c.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: c.surface,
+  },
+  currencyBtnText: { flex: 1, fontSize: 15, fontWeight: '600', color: c.text },
+
+  dateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: c.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: c.surface,
+  },
+  dateBtnText: { fontSize: 15, color: c.text },
+
+  chipRow: { flexDirection: 'row', gap: 8 },
+  chip: {
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: c.border,
-    backgroundColor: c.background,
+    backgroundColor: c.surface,
   },
-  groupChipActive: { backgroundColor: c.primary, borderColor: c.primary },
-  groupChipText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
-  groupChipTextActive: { color: '#fff' },
+  chipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  chipText: { fontSize: 13, fontWeight: '600', color: c.textSecondary },
+  chipTextActive: { color: '#fff' },
 
-  segmentRow: {
-    flexDirection: 'row',
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: c.border,
-    overflow: 'hidden',
-    backgroundColor: c.surface,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: c.surface,
-  },
-  segmentActive: { backgroundColor: c.primary },
-  segmentText: { fontSize: 13, fontWeight: '600', color: c.textSecondary },
-  segmentTextActive: { color: '#fff' },
-  splitHint: { fontSize: 11, color: c.textMuted, marginTop: 4 },
+  hint: { fontSize: 12, color: c.textMuted, marginTop: 6 },
 
   participantList: {
-    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: c.border,
+    borderRadius: 12,
     backgroundColor: c.surface,
     overflow: 'hidden',
   },
@@ -439,19 +416,18 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: c.divider,
+    paddingVertical: 12,
   },
-  participantAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  participantBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     backgroundColor: c.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  participantInitial: { fontSize: 13, fontWeight: '700', color: c.primary },
+  avatarText: { fontSize: 13, fontWeight: '700', color: c.primary },
   participantName: { flex: 1, fontSize: 14, fontWeight: '500', color: c.text },
   equalBadge: {
     fontSize: 12,
@@ -476,8 +452,8 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   },
 
   footer: {
-    padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 8 : 16,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 8 : 20,
     borderTopWidth: 1,
     borderTopColor: c.border,
     backgroundColor: c.surface,
