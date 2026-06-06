@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,12 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Colors } from '@/constants/Colors';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 
 export default function RegisterScreen() {
   const { register } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,7 +60,7 @@ export default function RegisterScreen() {
           <TextInput
             style={styles.input}
             placeholder="John Doe"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -68,7 +70,7 @@ export default function RegisterScreen() {
           <TextInput
             style={styles.input}
             placeholder="you@example.com"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -80,7 +82,7 @@ export default function RegisterScreen() {
           <TextInput
             style={styles.input}
             placeholder="Min. 6 characters"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -110,29 +112,29 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: c.background },
   container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   header: { alignItems: 'center', marginBottom: 32 },
   logoBox: {
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 8,
   },
   logoIcon: { fontSize: 36, color: '#fff', fontWeight: '700' },
-  appName: { fontSize: 28, fontWeight: '800', color: Colors.text, letterSpacing: -0.5 },
-  tagline: { fontSize: 14, color: Colors.textSecondary, marginTop: 4 },
+  appName: { fontSize: 28, fontWeight: '800', color: c.text, letterSpacing: -0.5 },
+  tagline: { fontSize: 14, color: c.textSecondary, marginTop: 4 },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 20,
     padding: 24,
     shadowColor: '#000',
@@ -141,27 +143,27 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
-  title: { fontSize: 22, fontWeight: '700', color: Colors.text, marginBottom: 4 },
-  subtitle: { fontSize: 14, color: Colors.textSecondary, marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.text, marginBottom: 6 },
+  title: { fontSize: 22, fontWeight: '700', color: c.text, marginBottom: 4 },
+  subtitle: { fontSize: 14, color: c.textSecondary, marginBottom: 24 },
+  label: { fontSize: 13, fontWeight: '600', color: c.text, marginBottom: 6 },
   input: {
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.text,
-    backgroundColor: Colors.background,
+    color: c.text,
+    backgroundColor: c.background,
     marginBottom: 16,
   },
   btn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -170,6 +172,6 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.6 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   linkRow: { marginTop: 20, alignItems: 'center' },
-  linkText: { fontSize: 14, color: Colors.textSecondary },
-  link: { color: Colors.primary, fontWeight: '700' },
+  linkText: { fontSize: 14, color: c.textSecondary },
+  link: { color: c.primary, fontWeight: '700' },
 });

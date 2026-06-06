@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
-import { Colors } from '@/constants/Colors';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import type { ReceiptCategory } from '@/types';
 import { CurrencyPickerModal, CurrencySelector } from '@/components/CurrencyPickerModal';
@@ -24,6 +24,8 @@ import { CategoryPickerModal, CategorySelector } from '@/components/CategoryPick
 export default function NewReceiptScreen() {
   const { groupId } = useLocalSearchParams<{ groupId?: string }>();
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const titleRef = useRef<TextInput>(null);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<ReceiptCategory | null>(null);
@@ -55,7 +57,7 @@ export default function NewReceiptScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="close" size={24} color={Colors.text} />
+            <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>New Receipt</Text>
           <View style={{ width: 40 }} />
@@ -68,7 +70,7 @@ export default function NewReceiptScreen() {
               ref={titleRef}
               style={styles.input}
               placeholder="e.g. Dinner at Pizza Place"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={title}
               onChangeText={setTitle}
             />
@@ -114,8 +116,8 @@ export default function NewReceiptScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -124,8 +126,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderBottomColor: c.border,
+    backgroundColor: c.surface,
   },
   backBtn: {
     width: 40,
@@ -133,31 +135,31 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: c.text },
   content: { padding: 20, gap: 16, paddingBottom: 20 },
   fieldGroup: {},
-  label: { fontSize: 13, fontWeight: '600', color: Colors.text, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: c.text, marginBottom: 6 },
   input: {
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.text,
-    backgroundColor: Colors.surface,
+    color: c.text,
+    backgroundColor: c.surface,
   },
   footer: {
     padding: 20,
     paddingBottom: Platform.OS === 'ios' ? 8 : 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderTopColor: c.border,
+    backgroundColor: c.surface,
   },
   createBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',

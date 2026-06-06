@@ -11,7 +11,7 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 import { useNotifications } from '@/context/NotificationContext';
 import type { NotificationDto, NotificationType } from '@/types';
 
@@ -29,21 +29,23 @@ function timeAgo(dateStr: string): string {
 
 type IconConfig = { name: React.ComponentProps<typeof Ionicons>['name']; color: string; bg: string };
 
-function notificationIcon(type: NotificationType): IconConfig {
+function notificationIcon(type: NotificationType, c: ColorPalette): IconConfig {
   switch (type) {
     case 'GROUP_ADDED':
-      return { name: 'people', color: Colors.primary, bg: Colors.primaryLight };
+      return { name: 'people', color: c.primary, bg: c.primaryLight };
     case 'PAYMENT_REQUESTED':
-      return { name: 'cash', color: Colors.warning, bg: Colors.warningLight };
+      return { name: 'cash', color: c.warning, bg: c.warningLight };
     case 'PAYMENT_RECEIVED':
-      return { name: 'checkmark-circle', color: Colors.success, bg: Colors.successLight };
+      return { name: 'checkmark-circle', color: c.success, bg: c.successLight };
     default:
-      return { name: 'notifications', color: Colors.textSecondary, bg: Colors.divider };
+      return { name: 'notifications', color: c.textSecondary, bg: c.divider };
   }
 }
 
 function NotificationCard({ item, onPress }: { item: NotificationDto; onPress: () => void }) {
-  const icon = notificationIcon(item.type);
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+  const icon = notificationIcon(item.type, colors);
   return (
     <TouchableOpacity
       style={[styles.card, !item.read && styles.cardUnread]}
@@ -72,6 +74,8 @@ type ListItem =
   | { kind: 'item'; data: NotificationDto };
 
 export default function NotificationsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const { notifications, unreadCount, loading, fetchNotifications, markAsRead, markAllAsRead } =
     useNotifications();
 
@@ -106,7 +110,7 @@ export default function NotificationsScreen() {
   if (loading && notifications.length === 0) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -133,8 +137,8 @@ export default function NotificationsScreen() {
           <RefreshControl
             refreshing={loading}
             onRefresh={fetchNotifications}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
         renderItem={({ item }) => {
@@ -145,7 +149,7 @@ export default function NotificationsScreen() {
         }}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="notifications-off-outline" size={64} color={Colors.border} />
+            <Ionicons name="notifications-off-outline" size={64} color={colors.border} />
             <Text style={styles.emptyTitle}>No notifications yet</Text>
             <Text style={styles.emptySub}>
               You&#39;ll be notified when someone adds you to a group or requests a payment.
@@ -157,9 +161,9 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: c.background },
 
   headerRow: {
     flexDirection: 'row',
@@ -169,16 +173,16 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 12,
   },
-  heading: { fontSize: 24, fontWeight: '800', color: Colors.text },
+  heading: { fontSize: 24, fontWeight: '800', color: c.text },
   markAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -192,7 +196,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 16,
@@ -200,7 +204,7 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
@@ -214,7 +218,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardUnread: {
-    backgroundColor: '#F0F0FF',
+    backgroundColor: c.primaryLight,
   },
   iconBox: {
     width: 44,
@@ -235,29 +239,29 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.text,
+    color: c.text,
   },
   cardTitleUnread: { fontWeight: '800' },
   newDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     flexShrink: 0,
   },
   cardBody: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
     marginBottom: 6,
   },
   cardTime: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: '500',
   },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textSecondary },
-  emptySub: { fontSize: 14, color: Colors.textMuted, textAlign: 'center', paddingHorizontal: 20 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: c.textSecondary },
+  emptySub: { fontSize: 14, color: c.textMuted, textAlign: 'center', paddingHorizontal: 20 },
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { Colors } from '@/constants/Colors';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
+import { useCategoryConfig } from '@/constants/categories';
 import type {
   ReceiptDto,
   ReceiptItemDto,
@@ -25,22 +26,13 @@ import type {
   UserDto,
   SplitType,
   AssigneeEntry,
-  ReceiptCategory,
 } from '@/types';
 
-const CATEGORY_CONFIG: Record<ReceiptCategory, { icon: string; color: string; label: string }> = {
-  GROCERIES:     { icon: 'basket-outline',              color: '#10B981', label: 'Groceries' },
-  DINING:        { icon: 'restaurant-outline',          color: '#F97316', label: 'Dining' },
-  TRANSPORT:     { icon: 'car-outline',                 color: '#3B82F6', label: 'Transport' },
-  ENTERTAINMENT: { icon: 'film-outline',                color: '#A855F7', label: 'Entertainment' },
-  SHOPPING:      { icon: 'bag-handle-outline',          color: '#EC4899', label: 'Shopping' },
-  UTILITIES:     { icon: 'flash-outline',               color: '#F59E0B', label: 'Utilities' },
-  HEALTH:        { icon: 'medkit-outline',              color: '#EF4444', label: 'Health' },
-  OTHER:         { icon: 'ellipsis-horizontal-outline', color: '#6B7280', label: 'Other' },
-};
-
 function ReceiptMeta({ receipt, currency }: { receipt: ReceiptDto; currency: string }) {
-  const cfg = CATEGORY_CONFIG[receipt.category];
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+  const catConfig = useCategoryConfig();
+  const cfg = catConfig[receipt.category];
   return (
     <View style={[styles.metaCard, { marginHorizontal: 0, marginTop: 0, marginBottom: 4 }]}>
       <View style={styles.metaRow}>
@@ -64,7 +56,7 @@ function ReceiptMeta({ receipt, currency }: { receipt: ReceiptDto; currency: str
       )}
       <View style={styles.metaRow}>
         <Text style={styles.metaLabel}>Category</Text>
-        <View style={[styles.categoryBadge, { backgroundColor: cfg.color + '18' }]}>
+        <View style={[styles.categoryBadge, { backgroundColor: cfg.bgColor }]}>
           <Ionicons name={cfg.icon as any} size={13} color={cfg.color} />
           <Text style={[styles.categoryText, { color: cfg.color }]}>{cfg.label}</Text>
         </View>
@@ -73,7 +65,6 @@ function ReceiptMeta({ receipt, currency }: { receipt: ReceiptDto; currency: str
   );
 }
 
-// ─── Assign Item Modal ────────────────────────────────────────────────────────
 function AssignModal({
   visible,
   item,
@@ -92,6 +83,8 @@ function AssignModal({
   onDone: (updated: ReceiptItemDto) => void;
 }) {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [splitType, setSplitType] = useState<SplitType>('EQUAL');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
@@ -221,7 +214,7 @@ function AssignModal({
                     <TextInput
                       style={styles.valueInput}
                       placeholder={splitType === 'PERCENTAGE' ? '%' : splitType === 'COUNT' ? 'qty' : 'amt'}
-                      placeholderTextColor={Colors.textMuted}
+                      placeholderTextColor={colors.textMuted}
                       value={customValues[m.id] ?? ''}
                       onChangeText={v => setCustomValues(prev => ({ ...prev, [m.id]: v }))}
                       keyboardType="numeric"
@@ -245,9 +238,10 @@ function AssignModal({
   );
 }
 
-// ─── Summary Tab ──────────────────────────────────────────────────────────────
 function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [summary, setSummary] = useState<ReceiptSummaryDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [togglingPaid, setTogglingPaid] = useState(false);
@@ -295,7 +289,7 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
     <ScrollView contentContainerStyle={styles.summaryContent}>
       <ReceiptMeta receipt={receipt} currency={currency} />
       {loading
-        ? <ActivityIndicator style={{ marginTop: 20 }} color={Colors.primary} />
+        ? <ActivityIndicator style={{ marginTop: 20 }} color={colors.primary} />
         : summary?.participants.map(p => {
         const isCurrentUser = p.userId === user?.id;
         const owesPayment = isCurrentUser && !isScanner && p.totalOwed > 0;
@@ -315,7 +309,7 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
                 <Text style={styles.pTotal}>{currency} {Number(p.totalOwed).toFixed(2)}</Text>
                 {p.paid && !!receipt.groupId && (
                   <View style={styles.paidBadge}>
-                    <Ionicons name="checkmark-circle" size={11} color={Colors.success} />
+                    <Ionicons name="checkmark-circle" size={11} color={colors.success} />
                     <Text style={styles.paidBadgeText}>Paid</Text>
                   </View>
                 )}
@@ -327,7 +321,6 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
                 <Text style={styles.breakdownAmt}>{currency} {Number(item.amountOwed).toFixed(2)}</Text>
               </View>
             ))}
-            {/* Scanner: mark paid for other participants */}
             {isScanner && p.userId !== user?.id && p.totalOwed > 0 && !p.paid && (
               <TouchableOpacity
                 style={styles.markPaidBtn}
@@ -335,15 +328,14 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
                 disabled={togglingPaid}
               >
                 {togglingPaid
-                  ? <ActivityIndicator size="small" color={Colors.success} />
+                  ? <ActivityIndicator size="small" color={colors.success} />
                   : <>
-                      <Ionicons name="checkmark-circle-outline" size={15} color={Colors.success} />
+                      <Ionicons name="checkmark-circle-outline" size={15} color={colors.success} />
                       <Text style={styles.markPaidText}>Mark as paid</Text>
                     </>
                 }
               </TouchableOpacity>
             )}
-            {/* Participant: pay with Revolut button on their own card */}
             {canPayRevolut && !p.paid && (
               <TouchableOpacity
                 style={styles.revolutBtn}
@@ -366,10 +358,11 @@ function SummaryTab({ receipt }: { receipt: ReceiptDto }) {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ReceiptDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [receipt, setReceipt] = useState<ReceiptDto | null>(null);
   const [members, setMembers] = useState<UserDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -444,7 +437,7 @@ export default function ReceiptDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -460,7 +453,7 @@ export default function ReceiptDetailScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{receipt.title || 'Receipt'}</Text>
         <View style={{ width: 40 }} />
@@ -492,7 +485,7 @@ export default function ReceiptDetailScreen() {
                         style={styles.assignBtn}
                         onPress={() => setAssignTarget(item)}
                       >
-                        <Ionicons name="person-add" size={14} color={Colors.primary} />
+                        <Ionicons name="person-add" size={14} color={colors.primary} />
                         <Text style={styles.assignBtnText}>
                           {assignedCount > 0 ? `${assignedCount} assigned` : 'Assign'}
                         </Text>
@@ -521,9 +514,9 @@ export default function ReceiptDetailScreen() {
                 disabled={assigningAll}
               >
                 {assigningAll
-                  ? <ActivityIndicator color={Colors.primary} size="small" />
+                  ? <ActivityIndicator color={colors.primary} size="small" />
                   : <>
-                      <Ionicons name="people-outline" size={16} color={Colors.primary} />
+                      <Ionicons name="people-outline" size={16} color={colors.primary} />
                       <Text style={styles.assignAllBtnText}>Assign All to Everyone Equally</Text>
                     </>
                 }
@@ -561,23 +554,23 @@ export default function ReceiptDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: Colors.text, textAlign: 'center', marginHorizontal: 8 },
+  backBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: c.background, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: c.text, textAlign: 'center', marginHorizontal: 8 },
   metaCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 16,
@@ -589,28 +582,28 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
-  metaDivider: { height: 1, backgroundColor: Colors.divider, marginVertical: 8 },
-  metaLabel: { fontSize: 13, color: Colors.textSecondary },
-  metaValue: { fontSize: 14, fontWeight: '600', color: Colors.text },
-  metaTotal: { fontSize: 22, fontWeight: '800', color: Colors.text },
+  metaDivider: { height: 1, backgroundColor: c.divider, marginVertical: 8 },
+  metaLabel: { fontSize: 13, color: c.textSecondary },
+  metaValue: { fontSize: 14, fontWeight: '600', color: c.text },
+  metaTotal: { fontSize: 22, fontWeight: '800', color: c.text },
   categoryBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   categoryText: { fontSize: 12, fontWeight: '700' },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 12,
     padding: 4,
   },
   tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
-  tabActive: { backgroundColor: Colors.primary },
-  tabText: { fontSize: 14, fontWeight: '600', color: Colors.textSecondary },
+  tabActive: { backgroundColor: c.primary },
+  tabText: { fontSize: 14, fontWeight: '600', color: c.textSecondary },
   tabTextActive: { color: '#fff' },
   itemsList: { padding: 16, gap: 10, paddingBottom: 40 },
-  noItems: { textAlign: 'center', color: Colors.textMuted, marginTop: 40, fontSize: 14 },
+  noItems: { textAlign: 'center', color: c.textMuted, marginTop: 40, fontSize: 14 },
   itemCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     shadowColor: '#000',
@@ -620,38 +613,37 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   itemTop: { flexDirection: 'row', gap: 12 },
-  itemName: { fontSize: 15, fontWeight: '700', color: Colors.text },
-  itemMeta: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  itemName: { fontSize: 15, fontWeight: '700', color: c.text },
+  itemMeta: { fontSize: 12, color: c.textSecondary, marginTop: 2 },
   itemRight: { alignItems: 'flex-end', gap: 6 },
-  itemTotal: { fontSize: 15, fontWeight: '700', color: Colors.text },
+  itemTotal: { fontSize: 15, fontWeight: '700', color: c.text },
   assignBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  assignBtnText: { fontSize: 12, fontWeight: '600', color: Colors.primary },
+  assignBtnText: { fontSize: 12, fontWeight: '600', color: c.primary },
   assigneeList: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   assigneeChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.successLight,
+    backgroundColor: c.successLight,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  assigneeName: { fontSize: 12, fontWeight: '600', color: Colors.success },
-  assigneeAmt: { fontSize: 11, color: Colors.success },
-  // Summary
+  assigneeName: { fontSize: 12, fontWeight: '600', color: c.success },
+  assigneeAmt: { fontSize: 11, color: c.success },
   summaryContent: { padding: 16, gap: 12, paddingBottom: 40 },
   summaryTotals: { flexDirection: 'row', gap: 10 },
   totalBox: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
@@ -661,10 +653,10 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 1,
   },
-  totalLabel: { fontSize: 11, color: Colors.textSecondary, marginBottom: 4, textTransform: 'uppercase', fontWeight: '600' },
-  totalValue: { fontSize: 16, fontWeight: '800', color: Colors.text },
+  totalLabel: { fontSize: 11, color: c.textSecondary, marginBottom: 4, textTransform: 'uppercase', fontWeight: '600' },
+  totalValue: { fontSize: 16, fontWeight: '800', color: c.text },
   participantCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     shadowColor: '#000',
@@ -674,24 +666,24 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   participantHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  pAvatar: { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center' },
-  pAvatarText: { fontSize: 13, fontWeight: '800', color: Colors.primary },
-  pName: { fontSize: 15, fontWeight: '700', color: Colors.text },
-  pEmail: { fontSize: 11, color: Colors.textSecondary },
-  pTotal: { fontSize: 16, fontWeight: '800', color: Colors.text },
-  breakdownRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: 1, borderTopColor: Colors.divider },
-  breakdownItem: { fontSize: 13, color: Colors.textSecondary },
-  breakdownAmt: { fontSize: 13, fontWeight: '600', color: Colors.text },
+  pAvatar: { width: 36, height: 36, borderRadius: 10, backgroundColor: c.primaryLight, justifyContent: 'center', alignItems: 'center' },
+  pAvatarText: { fontSize: 13, fontWeight: '800', color: c.primary },
+  pName: { fontSize: 15, fontWeight: '700', color: c.text },
+  pEmail: { fontSize: 11, color: c.textSecondary },
+  pTotal: { fontSize: 16, fontWeight: '800', color: c.text },
+  breakdownRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: 1, borderTopColor: c.divider },
+  breakdownItem: { fontSize: 13, color: c.textSecondary },
+  breakdownAmt: { fontSize: 13, fontWeight: '600', color: c.text },
   paidBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: Colors.successLight,
+    backgroundColor: c.successLight,
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  paidBadgeText: { fontSize: 10, fontWeight: '700', color: Colors.success },
+  paidBadgeText: { fontSize: 10, fontWeight: '700', color: c.success },
   revolutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -709,19 +701,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: Colors.successLight,
+    backgroundColor: c.successLight,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginTop: 12,
   },
-  markPaidText: { fontSize: 13, fontWeight: '700', color: Colors.success },
+  markPaidText: { fontSize: 13, fontWeight: '700', color: c.success },
   proceedBar: {
     padding: 16,
     paddingBottom: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   assignAllBtn: {
     flexDirection: 'row',
@@ -729,45 +721,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: c.primary,
     borderRadius: 14,
     paddingVertical: 12,
     marginBottom: 8,
   },
-  assignAllBtnText: { fontSize: 14, fontWeight: '700', color: Colors.primary },
+  assignAllBtnText: { fontSize: 14, fontWeight: '700', color: c.primary },
   proceedBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 14,
   },
-  proceedBtnDisabled: { backgroundColor: Colors.border },
+  proceedBtnDisabled: { backgroundColor: c.border },
   proceedBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  // Modal
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: Colors.overlay },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: c.overlay },
   modalSheet: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 40,
     maxHeight: '85%',
   },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.text, marginBottom: 4 },
-  modalSub: { fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 6 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: c.text, marginBottom: 4 },
+  modalSub: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: 6 },
   modalItemMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  modalItemMetaText: { fontSize: 13, color: Colors.textSecondary },
-  modalItemTotal: { fontSize: 15, fontWeight: '800', color: Colors.text },
-  countHint: { fontSize: 12, color: Colors.primary, fontWeight: '600', marginBottom: 8, marginTop: -6 },
-  sectionLabel: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 8 },
+  modalItemMetaText: { fontSize: 13, color: c.textSecondary },
+  modalItemTotal: { fontSize: 15, fontWeight: '800', color: c.text },
+  countHint: { fontSize: 12, color: c.primary, fontWeight: '600', marginBottom: 8, marginTop: -6 },
+  sectionLabel: { fontSize: 12, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 8 },
   splitTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  typeChip: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center' },
-  typeChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  typeChipText: { fontSize: 12, fontWeight: '700', color: Colors.textSecondary },
+  typeChip: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: c.border, alignItems: 'center' },
+  typeChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  typeChipText: { fontSize: 12, fontWeight: '700', color: c.textSecondary },
   typeChipTextActive: { color: '#fff' },
   memberRow: {
     flexDirection: 'row',
@@ -777,28 +768,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 12,
     marginBottom: 4,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
-  memberRowActive: { backgroundColor: Colors.primaryLight },
+  memberRowActive: { backgroundColor: c.primaryLight },
   memberLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  memberCheck: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: Colors.border, justifyContent: 'center', alignItems: 'center' },
-  memberCheckActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  memberAvatar: { width: 32, height: 32, borderRadius: 8, backgroundColor: Colors.border, justifyContent: 'center', alignItems: 'center' },
-  memberAvatarText: { fontSize: 12, fontWeight: '700', color: Colors.text },
-  memberName: { fontSize: 14, fontWeight: '600', color: Colors.text },
+  memberCheck: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: c.border, justifyContent: 'center', alignItems: 'center' },
+  memberCheckActive: { backgroundColor: c.primary, borderColor: c.primary },
+  memberAvatar: { width: 32, height: 32, borderRadius: 8, backgroundColor: c.border, justifyContent: 'center', alignItems: 'center' },
+  memberAvatarText: { fontSize: 12, fontWeight: '700', color: c.text },
+  memberName: { fontSize: 14, fontWeight: '600', color: c.text },
   valueInput: {
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
     fontSize: 13,
-    color: Colors.text,
+    color: c.text,
     width: 64,
     textAlign: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
-  saveBtn: { backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  saveBtn: { backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   saveText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   btnDisabled: { opacity: 0.5 },
 });

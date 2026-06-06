@@ -16,8 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { Colors } from '@/constants/Colors';
-import { CATEGORY_CONFIG } from '@/constants/categories';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
+import { useCategoryConfig } from '@/constants/categories';
 import type { ReceiptCategory } from '@/types';
 import { useCurrencyRates } from '@/lib/useCurrencyRates';
 
@@ -55,7 +55,7 @@ function getRange(period: Period, offset: number): DateRange {
     }
     case 'week': {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dow = (today.getDay() + 6) % 7; // 0 = Monday
+      const dow = (today.getDay() + 6) % 7;
       const monday = new Date(today);
       monday.setDate(today.getDate() - dow + offset * 7);
       const sunday = new Date(monday);
@@ -101,9 +101,11 @@ interface CategoryStat {
   count: number;
 }
 
-// ─── Category Row ─────────────────────────────────────────────────────────────
 function CategoryRow({ stat, maxAmount, currency, onPress }: { stat: CategoryStat; maxAmount: number; currency: string; onPress: () => void }) {
-  const config = CATEGORY_CONFIG[stat.category];
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+  const catConfig = useCategoryConfig();
+  const config = catConfig[stat.category];
   const barWidth = maxAmount > 0 ? (stat.amount / maxAmount) * 100 : 0;
 
   return (
@@ -123,12 +125,11 @@ function CategoryRow({ stat, maxAmount, currency, onPress }: { stat: CategorySta
         </View>
         <Text style={styles.catCount}>{stat.count} receipt{stat.count !== 1 ? 's' : ''}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} style={{ alignSelf: 'center' }} />
+      <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={{ alignSelf: 'center' }} />
     </TouchableOpacity>
   );
 }
 
-// ─── Category Modal ───────────────────────────────────────────────────────────
 function CategoryModal({
   category,
   entries,
@@ -138,11 +139,14 @@ function CategoryModal({
   entries: PaidEntry[];
   onClose: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+  const catConfig = useCategoryConfig();
   const [scrollY, setScrollY] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
 
-  const catCfg = category ? CATEGORY_CONFIG[category] : null;
+  const catCfg = category ? catConfig[category] : null;
   const showThumb = contentHeight > containerHeight;
   const thumbHeight = showThumb ? Math.max((containerHeight / contentHeight) * containerHeight, 32) : 0;
   const thumbTop = showThumb
@@ -191,9 +195,10 @@ function CategoryModal({
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function StatsScreen() {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const preferredCurrency = user?.preferredCurrency ?? 'RON';
   const { convert, loading: ratesLoading } = useCurrencyRates(preferredCurrency);
   const [entries, setEntries] = useState<PaidEntry[]>([]);
@@ -281,7 +286,7 @@ export default function StatsScreen() {
   if (loading || ratesLoading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -296,11 +301,10 @@ export default function StatsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); void load(); }}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
       >
-        {/* Header */}
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.heading}>Statistics</Text>
@@ -308,7 +312,6 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        {/* Period filter chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -328,7 +331,6 @@ export default function StatsScreen() {
           ))}
         </ScrollView>
 
-        {/* Period navigator */}
         {period !== 'all' && (
           <View style={styles.navigator}>
             <TouchableOpacity
@@ -336,7 +338,7 @@ export default function StatsScreen() {
               onPress={() => setOffset(o => o - 1)}
               activeOpacity={0.6}
             >
-              <Ionicons name="chevron-back" size={20} color={Colors.primary} />
+              <Ionicons name="chevron-back" size={20} color={colors.primary} />
             </TouchableOpacity>
 
             <Text style={styles.navLabel}>{range.label}</Text>
@@ -350,16 +352,15 @@ export default function StatsScreen() {
               <Ionicons
                 name="chevron-forward"
                 size={20}
-                color={offset === 0 ? Colors.border : Colors.primary}
+                color={offset === 0 ? colors.border : colors.primary}
               />
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Total paid card */}
         <View style={styles.totalCard}>
-          <View style={[styles.totalIconBox, { backgroundColor: Colors.successLight }]}>
-            <Ionicons name="checkmark-circle" size={22} color={Colors.success} />
+          <View style={[styles.totalIconBox, { backgroundColor: colors.successLight }]}>
+            <Ionicons name="checkmark-circle" size={22} color={colors.success} />
           </View>
           <View>
             <Text style={styles.totalLabel}>Total Paid</Text>
@@ -371,10 +372,9 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        {/* Category breakdown */}
         {byCategory.length === 0 ? (
           <View style={styles.empty}>
-            <Ionicons name="pie-chart-outline" size={64} color={Colors.border} />
+            <Ionicons name="pie-chart-outline" size={64} color={colors.border} />
             <Text style={styles.emptyTitle}>No data for this period</Text>
             <Text style={styles.emptySub}>Try a different time range or scan some receipts</Text>
           </View>
@@ -393,7 +393,6 @@ export default function StatsScreen() {
           </View>
         )}
       </ScrollView>
-      {/* Category receipts modal */}
       <CategoryModal
         category={selectedCategory}
         entries={selectedCategory ? entries.filter(e => {
@@ -409,9 +408,9 @@ export default function StatsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: c.background },
   scroll: { padding: 20, paddingBottom: 40 },
 
   headerRow: {
@@ -420,45 +419,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  heading: { fontSize: 24, fontWeight: '800', color: Colors.text },
-  subheading: { fontSize: 14, color: Colors.textSecondary, marginTop: 2 },
-  headerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  heading: { fontSize: 24, fontWeight: '800', color: c.text },
+  subheading: { fontSize: 14, color: c.textSecondary, marginTop: 2 },
 
-  // Period chips
   filterRow: { gap: 8, paddingBottom: 12 },
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   filterChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
-  filterChipText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: c.textSecondary },
   filterChipTextActive: { color: '#fff' },
 
-  // Period navigator
   navigator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     paddingHorizontal: 6,
     paddingVertical: 6,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   navBtn: {
     width: 36,
@@ -466,20 +456,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
   },
-  navBtnDisabled: { backgroundColor: Colors.divider },
+  navBtnDisabled: { backgroundColor: c.divider },
   navLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.text,
+    color: c.text,
     flex: 1,
     textAlign: 'center',
   },
 
-  // Total card
   totalCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     paddingHorizontal: 20,
     paddingVertical: 14,
@@ -500,18 +489,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  totalLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary, marginBottom: 2 },
-  totalAmount: { fontSize: 22, fontWeight: '800', color: Colors.text },
-  totalSub: { fontSize: 12, color: Colors.textMuted, marginTop: 1 },
+  totalLabel: { fontSize: 12, fontWeight: '600', color: c.textSecondary, marginBottom: 2 },
+  totalAmount: { fontSize: 22, fontWeight: '800', color: c.text },
+  totalSub: { fontSize: 12, color: c.textMuted, marginTop: 1 },
 
-  // Category section
   section: { gap: 10 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: Colors.text, marginBottom: 2 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: c.text, marginBottom: 2 },
 
   catRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     gap: 12,
@@ -535,24 +523,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  catLabel: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  catLabel: { fontSize: 14, fontWeight: '700', color: c.text },
   catAmount: { fontSize: 14, fontWeight: '700' },
   catBarTrack: {
     height: 6,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 5,
   },
   catBarFill: { height: '100%', borderRadius: 3 },
-  catCount: { fontSize: 11, color: Colors.textMuted },
+  catCount: { fontSize: 11, color: c.textMuted },
 
-  // Category modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', alignItems: 'center' },
   modalSheet: {
     width: '88%',
     maxHeight: 420,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -563,24 +550,23 @@ const styles = StyleSheet.create({
   },
   modalScrollContainer: { flexDirection: 'row', maxHeight: 300 },
   modalScroll: { flex: 1 },
-  scrollTrack: { width: 4, borderRadius: 2, backgroundColor: Colors.border, marginLeft: 12, marginRight: -10 },
-  scrollThumb: { width: 4, borderRadius: 2, backgroundColor: Colors.textMuted },
+  scrollTrack: { width: 4, borderRadius: 2, backgroundColor: c.border, marginLeft: 12, marginRight: -10 },
+  scrollThumb: { width: 4, borderRadius: 2, backgroundColor: c.textMuted },
   modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
   modalCatIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.text },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: c.text },
   modalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: c.divider,
   },
-  modalReceiptTitle: { fontSize: 14, fontWeight: '600', color: Colors.text, flex: 1, marginRight: 12 },
-  modalReceiptAmt: { fontSize: 14, fontWeight: '700', color: Colors.textSecondary },
+  modalReceiptTitle: { fontSize: 14, fontWeight: '600', color: c.text, flex: 1, marginRight: 12 },
+  modalReceiptAmt: { fontSize: 14, fontWeight: '700', color: c.textSecondary },
 
-  // Empty state
   empty: { alignItems: 'center', paddingTop: 48, gap: 10 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: Colors.textSecondary },
-  emptySub: { fontSize: 13, color: Colors.textMuted, textAlign: 'center', paddingHorizontal: 32 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: c.textSecondary },
+  emptySub: { fontSize: 13, color: c.textMuted, textAlign: 'center', paddingHorizontal: 32 },
 });

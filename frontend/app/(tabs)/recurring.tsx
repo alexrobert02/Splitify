@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
-import { Colors } from '@/constants/Colors';
-import { CATEGORY_CONFIG } from '@/constants/categories';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
+import { useCategoryConfig } from '@/constants/categories';
 import type { RecurringExpenseDto, RecurrenceFrequency } from '@/types';
 
 const FREQ_LABEL: Record<RecurrenceFrequency, string> = {
@@ -33,18 +33,21 @@ function RecurringCard({
   onToggle: () => void;
   onDelete: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+  const catConfig = useCategoryConfig();
   const nextDate = new Date(item.nextRunAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
-  const catCfg = CATEGORY_CONFIG[item.category] ?? CATEGORY_CONFIG.OTHER;
+  const catCfg = catConfig[item.category] ?? catConfig.OTHER;
 
   return (
     <View style={styles.card}>
       <View style={styles.cardInner}>
-        <View style={[styles.iconBox, { backgroundColor: item.active ? catCfg.bgColor : Colors.divider }]}>
-          <Ionicons name={catCfg.icon as any} size={20} color={item.active ? catCfg.color : Colors.textMuted} />
+        <View style={[styles.iconBox, { backgroundColor: item.active ? catCfg.bgColor : colors.divider }]}>
+          <Ionicons name={catCfg.icon as any} size={20} color={item.active ? catCfg.color : colors.textMuted} />
         </View>
 
         <View style={styles.cardBody}>
@@ -61,7 +64,7 @@ function RecurringCard({
           </Text>
           {item.groupName && (
             <View style={styles.groupRow}>
-              <Ionicons name="people-outline" size={11} color={Colors.textMuted} />
+              <Ionicons name="people-outline" size={11} color={colors.textMuted} />
               <Text style={styles.cardGroup}>{item.groupName}</Text>
             </View>
           )}
@@ -80,7 +83,7 @@ function RecurringCard({
               <Ionicons
                 name={item.active ? 'pause' : 'play'}
                 size={13}
-                color={item.active ? Colors.primary : Colors.textMuted}
+                color={item.active ? colors.primary : colors.textMuted}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -97,7 +100,7 @@ function RecurringCard({
               style={[styles.iconBtn, styles.iconBtnDanger]}
               hitSlop={6}
             >
-              <Ionicons name="trash-outline" size={13} color={Colors.error} />
+              <Ionicons name="trash-outline" size={13} color={colors.error} />
             </TouchableOpacity>
           </View>
         </View>
@@ -107,6 +110,8 @@ function RecurringCard({
 }
 
 export default function RecurringScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [items, setItems] = useState<RecurringExpenseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -147,7 +152,7 @@ export default function RecurringScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -169,7 +174,7 @@ export default function RecurringScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); load(true); }}
-            colors={[Colors.primary]}
+            colors={[colors.primary]}
           />
         }
         ListHeaderComponent={
@@ -182,7 +187,7 @@ export default function RecurringScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="repeat-outline" size={56} color={Colors.textSecondary} />
+            <Ionicons name="repeat-outline" size={56} color={colors.textSecondary} />
             <Text style={styles.emptyTitle}>No recurring expenses</Text>
             <Text style={styles.emptyHint}>Tap + to schedule a recurring split</Text>
           </View>
@@ -201,9 +206,9 @@ export default function RecurringScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: c.background },
 
   headingRow: {
     flexDirection: 'row',
@@ -211,20 +216,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  heading: { fontSize: 24, fontWeight: '800', color: Colors.text },
-  subheading: { fontSize: 14, color: Colors.textSecondary, marginTop: 2 },
+  heading: { fontSize: 24, fontWeight: '800', color: c.text },
+  subheading: { fontSize: 14, color: c.textSecondary, marginTop: 2 },
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 20,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 16,
     paddingHorizontal: 20,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -235,14 +240,14 @@ const styles = StyleSheet.create({
   list: { padding: 20, gap: 10, paddingBottom: 90 },
   emptyContainer: { padding: 20 },
   empty: { alignItems: 'center', gap: 10, paddingTop: 64 },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: Colors.text },
-  emptyHint: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontSize: 17, fontWeight: '600', color: c.text },
+  emptyHint: { fontSize: 13, color: c.textSecondary, textAlign: 'center' },
 
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: 'hidden',
     flexDirection: 'row',
   },
@@ -262,20 +267,20 @@ const styles = StyleSheet.create({
   },
   cardBody: { flex: 1, gap: 3 },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: Colors.text, flexShrink: 1 },
+  cardTitle: { fontSize: 15, fontWeight: '600', color: c.text, flexShrink: 1 },
   pausedBadge: {
-    backgroundColor: Colors.divider,
+    backgroundColor: c.divider,
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
-  pausedBadgeText: { fontSize: 10, fontWeight: '700', color: Colors.textMuted },
-  cardSub: { fontSize: 12, color: Colors.textSecondary },
+  pausedBadgeText: { fontSize: 10, fontWeight: '700', color: c.textMuted },
+  cardSub: { fontSize: 12, color: c.textSecondary },
   groupRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
-  cardGroup: { fontSize: 11, color: Colors.textMuted },
+  cardGroup: { fontSize: 11, color: c.textMuted },
 
   cardRight: { alignItems: 'flex-end', gap: 6 },
-  cardAmount: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  cardAmount: { fontSize: 14, fontWeight: '700', color: c.text },
   actions: { flexDirection: 'row', gap: 6 },
   iconBtn: {
     width: 28,
@@ -284,7 +289,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconBtnPrimary: { backgroundColor: Colors.primaryLight },
-  iconBtnMuted: { backgroundColor: Colors.divider },
-  iconBtnDanger: { backgroundColor: Colors.errorLight },
+  iconBtnPrimary: { backgroundColor: c.primaryLight },
+  iconBtnMuted: { backgroundColor: c.divider },
+  iconBtnDanger: { backgroundColor: c.errorLight },
 });

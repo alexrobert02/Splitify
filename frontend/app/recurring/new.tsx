@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
-import { Colors } from '@/constants/Colors';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 import { CurrencyPickerModal, CurrencySelector } from '@/components/CurrencyPickerModal';
 import { CategoryPickerModal, CategorySelector } from '@/components/CategoryPickerModal';
 import { useAuth } from '@/context/AuthContext';
@@ -41,10 +41,14 @@ interface ParticipantEntry {
 }
 
 function FieldLabel({ label }: { label: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   return <Text style={styles.fieldLabel}>{label}</Text>;
 }
 
 export default function NewRecurringScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [title, setTitle]             = useState('');
   const [amount, setAmount]           = useState('');
   const [currency, setCurrency]       = useState('RON');
@@ -133,10 +137,9 @@ export default function NewRecurringScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <Ionicons name="arrow-back" size={20} color={Colors.text} />
+          <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Recurring Expense</Text>
         <View style={{ width: 40 }} />
@@ -145,7 +148,6 @@ export default function NewRecurringScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-          {/* Title */}
           <View style={styles.fieldGroup}>
             <FieldLabel label="Title" />
             <TextInput
@@ -153,11 +155,10 @@ export default function NewRecurringScreen() {
               value={title}
               onChangeText={setTitle}
               placeholder="e.g. Monthly rent"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
             />
           </View>
 
-          {/* Amount + Currency */}
           <View style={styles.row}>
             <View style={[styles.fieldGroup, styles.flex]}>
               <FieldLabel label="Amount" />
@@ -166,7 +167,7 @@ export default function NewRecurringScreen() {
                 value={amount}
                 onChangeText={setAmount}
                 placeholder="0.00"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 keyboardType="decimal-pad"
               />
             </View>
@@ -179,13 +180,11 @@ export default function NewRecurringScreen() {
             </View>
           </View>
 
-          {/* Category */}
           <View style={styles.fieldGroup}>
             <FieldLabel label="Category" />
             <CategorySelector value={category} onPress={() => setCategoryModal(true)} />
           </View>
 
-          {/* Frequency */}
           <View style={styles.fieldGroup}>
             <FieldLabel label="Frequency" />
             <View style={styles.segmentRow}>
@@ -205,11 +204,10 @@ export default function NewRecurringScreen() {
             </View>
           </View>
 
-          {/* Start date */}
           <View style={styles.fieldGroup}>
             <FieldLabel label="Start date" />
             <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)} activeOpacity={0.7}>
-              <Text style={{ color: Colors.text, fontSize: 15 }}>
+              <Text style={{ color: colors.text, fontSize: 15 }}>
                 {startDate.toLocaleDateString('en-CA')}
               </Text>
             </TouchableOpacity>
@@ -227,7 +225,6 @@ export default function NewRecurringScreen() {
             )}
           </View>
 
-          {/* Group */}
           <View style={styles.fieldGroup}>
             <FieldLabel label="Group" />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={{ gap: 8 }}>
@@ -236,7 +233,7 @@ export default function NewRecurringScreen() {
                 onPress={() => handleGroupSelect(null)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="person-outline" size={14} color={selectedGroup === null ? '#fff' : Colors.textMuted} />
+                <Ionicons name="person-outline" size={14} color={selectedGroup === null ? '#fff' : colors.textMuted} />
                 <Text style={[styles.groupChipText, selectedGroup === null && styles.groupChipTextActive]}>None</Text>
               </TouchableOpacity>
               {groups.map(g => {
@@ -248,7 +245,7 @@ export default function NewRecurringScreen() {
                     onPress={() => handleGroupSelect(g)}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="people-outline" size={14} color={active ? '#fff' : Colors.textMuted} />
+                    <Ionicons name="people-outline" size={14} color={active ? '#fff' : colors.textMuted} />
                     <Text style={[styles.groupChipText, active && styles.groupChipTextActive]}>{g.name}</Text>
                   </TouchableOpacity>
                 );
@@ -256,10 +253,8 @@ export default function NewRecurringScreen() {
             </ScrollView>
           </View>
 
-          {/* Participants */}
           {selectedGroup !== null && participants.length > 0 && (
             <>
-              {/* Split type */}
               <View style={styles.fieldGroup}>
                 <FieldLabel label="Split type" />
                 <View style={styles.segmentRow}>
@@ -282,7 +277,6 @@ export default function NewRecurringScreen() {
                 </Text>
               </View>
 
-              {/* Participant rows */}
               <View style={styles.fieldGroup}>
                 <FieldLabel label="Participants" />
                 <View style={styles.participantList}>
@@ -300,7 +294,7 @@ export default function NewRecurringScreen() {
                           value={p.splitValue}
                           onChangeText={v => updateSplitValue(idx, v)}
                           placeholder={splitType === 'PERCENTAGE' ? '%' : currency}
-                          placeholderTextColor={Colors.textMuted}
+                          placeholderTextColor={colors.textMuted}
                           keyboardType="decimal-pad"
                         />
                       )}
@@ -308,7 +302,7 @@ export default function NewRecurringScreen() {
                         <Text style={styles.equalBadge}>Equal</Text>
                       )}
                       <TouchableOpacity onPress={() => removeParticipant(idx)} hitSlop={8}>
-                        <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+                        <Ionicons name="close-circle" size={18} color={colors.textMuted} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -317,11 +311,9 @@ export default function NewRecurringScreen() {
             </>
           )}
 
-          {/* Bottom padding so footer doesn't overlap last field */}
           <View style={{ height: 16 }} />
         </ScrollView>
 
-        {/* Sticky footer */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
@@ -357,8 +349,8 @@ export default function NewRecurringScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
 
   header: {
@@ -368,8 +360,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderBottomColor: c.border,
+    backgroundColor: c.surface,
   },
   headerBtn: {
     width: 40,
@@ -377,26 +369,26 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: c.text },
 
   content: { padding: 16, gap: 4 },
 
   fieldGroup: { gap: 6, marginBottom: 16 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: c.textSecondary },
 
   row: { flexDirection: 'row', gap: 12, marginBottom: 16 },
 
   input: {
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: Colors.text,
-    backgroundColor: Colors.surface,
+    color: c.text,
+    backgroundColor: c.surface,
   },
 
   categoryScroll: { marginTop: 2 },
@@ -409,37 +401,37 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderColor: c.border,
+    backgroundColor: c.background,
   },
-  groupChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  groupChipText: { fontSize: 13, fontWeight: '600', color: Colors.textMuted },
+  groupChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  groupChipText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
   groupChipTextActive: { color: '#fff' },
 
   segmentRow: {
     flexDirection: 'row',
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: 'hidden',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   segment: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
-  segmentActive: { backgroundColor: Colors.primary },
-  segmentText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
+  segmentActive: { backgroundColor: c.primary },
+  segmentText: { fontSize: 13, fontWeight: '600', color: c.textSecondary },
   segmentTextActive: { color: '#fff' },
-  splitHint: { fontSize: 11, color: Colors.textMuted, marginTop: 4 },
+  splitHint: { fontSize: 11, color: c.textMuted, marginTop: 4 },
 
   participantList: {
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
     overflow: 'hidden',
   },
   participantRow: {
@@ -449,23 +441,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: c.divider,
   },
   participantAvatar: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  participantInitial: { fontSize: 13, fontWeight: '700', color: Colors.primary },
-  participantName: { flex: 1, fontSize: 14, fontWeight: '500', color: Colors.text },
+  participantInitial: { fontSize: 13, fontWeight: '700', color: c.primary },
+  participantName: { flex: 1, fontSize: 14, fontWeight: '500', color: c.text },
   equalBadge: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    color: c.primary,
+    backgroundColor: c.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -473,32 +465,32 @@ const styles = StyleSheet.create({
   splitInput: {
     width: 72,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 6,
     fontSize: 14,
-    color: Colors.text,
+    color: c.text,
     textAlign: 'right',
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   footer: {
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderTopColor: c.border,
+    backgroundColor: c.surface,
   },
   saveBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 16,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,10 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
-import { Colors } from '@/constants/Colors';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 
 export default function ScanScreen() {
   const { groupId } = useLocalSearchParams<{ groupId?: string }>();
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -70,7 +72,7 @@ export default function ScanScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="close" size={24} color={Colors.text} />
+            <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Scan Receipt</Text>
           <View style={{ width: 40 }} />
@@ -86,7 +88,7 @@ export default function ScanScreen() {
               <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
             ) : (
               <View style={styles.placeholder}>
-                <Ionicons name="receipt-outline" size={56} color={Colors.textMuted} />
+                <Ionicons name="receipt-outline" size={56} color={colors.textMuted} />
                 <Text style={styles.placeholderText}>Tap to select a receipt image</Text>
                 <Text style={styles.placeholderSub}>JPG or PNG supported</Text>
               </View>
@@ -95,11 +97,11 @@ export default function ScanScreen() {
 
           <View style={styles.pickerRow}>
             <TouchableOpacity style={styles.pickerBtn} onPress={() => pickImage(true)}>
-              <Ionicons name="camera" size={20} color={Colors.primary} />
+              <Ionicons name="camera" size={20} color={colors.primary} />
               <Text style={styles.pickerBtnText}>Camera</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.pickerBtn} onPress={() => pickImage(false)}>
-              <Ionicons name="images" size={20} color={Colors.primary} />
+              <Ionicons name="images" size={20} color={colors.primary} />
               <Text style={styles.pickerBtnText}>Gallery</Text>
             </TouchableOpacity>
           </View>
@@ -109,14 +111,14 @@ export default function ScanScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. Dinner at Pizza Place"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={title}
               onChangeText={setTitle}
             />
           </View>
 
           <View style={styles.infoBox}>
-            <Ionicons name="information-circle" size={18} color={Colors.primary} />
+            <Ionicons name="information-circle" size={18} color={colors.primary} />
             <Text style={styles.infoText}>
               Our OCR engine will automatically extract items, quantities and prices from your receipt.
             </Text>
@@ -144,8 +146,8 @@ export default function ScanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -154,8 +156,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderBottomColor: c.border,
+    backgroundColor: c.surface,
   },
   backBtn: {
     width: 40,
@@ -163,24 +165,24 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: c.text },
   content: { padding: 20, gap: 16, paddingBottom: 20 },
   imageBox: {
     height: 240,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderStyle: 'dashed',
     overflow: 'hidden',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
-  imageBoxFilled: { borderStyle: 'solid', borderColor: Colors.primary },
+  imageBoxFilled: { borderStyle: 'solid', borderColor: c.primary },
   previewImage: { width: '100%', height: '100%' },
   placeholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  placeholderText: { fontSize: 15, fontWeight: '600', color: Colors.textSecondary },
-  placeholderSub: { fontSize: 13, color: Colors.textMuted },
+  placeholderText: { fontSize: 15, fontWeight: '600', color: c.textSecondary },
+  placeholderSub: { fontSize: 13, color: c.textMuted },
   pickerRow: { flexDirection: 'row', gap: 12 },
   pickerBtn: {
     flex: 1,
@@ -188,48 +190,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: 12,
     paddingVertical: 12,
   },
-  pickerBtnText: { fontSize: 14, fontWeight: '700', color: Colors.primary },
+  pickerBtnText: { fontSize: 14, fontWeight: '700', color: c.primary },
   fieldGroup: {},
-  label: { fontSize: 13, fontWeight: '600', color: Colors.text, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: c.text, marginBottom: 6 },
   input: {
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.text,
-    backgroundColor: Colors.surface,
+    color: c.text,
+    backgroundColor: c.surface,
   },
   infoBox: {
     flexDirection: 'row',
     gap: 10,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: 12,
     padding: 14,
     alignItems: 'flex-start',
   },
-  infoText: { flex: 1, fontSize: 13, color: Colors.primaryDark, lineHeight: 20 },
+  infoText: { flex: 1, fontSize: 13, color: c.primaryDark, lineHeight: 20 },
   footer: {
     padding: 20,
     paddingBottom: Platform.OS === 'ios' ? 8 : 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderTopColor: c.border,
+    backgroundColor: c.surface,
   },
   uploadBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 16,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
-import { Colors } from '@/constants/Colors';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 import type { ReceiptDto, ReceiptItemDto, ReceiptCategory } from '@/types';
 import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
 import { CategoryPickerModal } from '@/components/CategoryPickerModal';
@@ -28,6 +28,8 @@ const emptyEdit = (): EditState => ({ name: '', quantity: '1', unitPrice: '' });
 
 export default function ReviewScreen() {
   const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
+  const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const isScanned = source === 'scan';
   const [receipt, setReceipt] = useState<ReceiptDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function ReviewScreen() {
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
 
-const handleCurrencyChange = async (code: string) => {
+  const handleCurrencyChange = async (code: string) => {
     setSavingCurrency(true);
     try {
       const updated = await api.receipts.update(id, { currency: code });
@@ -194,7 +196,7 @@ const handleCurrencyChange = async (code: string) => {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -209,13 +211,13 @@ const handleCurrencyChange = async (code: string) => {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-            <Ionicons name="arrow-back" size={20} color={Colors.text} />
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Review Items</Text>
           <TouchableOpacity onPress={handleDeleteReceipt} style={styles.headerBtn} disabled={deleting}>
             {deleting
-              ? <ActivityIndicator size="small" color={Colors.error} />
-              : <Ionicons name="trash-outline" size={20} color={Colors.error} />}
+              ? <ActivityIndicator size="small" color={colors.error} />
+              : <Ionicons name="trash-outline" size={20} color={colors.error} />}
           </TouchableOpacity>
         </View>
 
@@ -234,11 +236,11 @@ const handleCurrencyChange = async (code: string) => {
               disabled={savingCategory}
             >
               {savingCategory
-                ? <ActivityIndicator size="small" color={Colors.primary} />
+                ? <ActivityIndicator size="small" color={colors.primary} />
                 : <>
-                    <Ionicons name={catCfg.icon as any} size={13} color={Colors.primary} />
+                    <Ionicons name={catCfg.icon as any} size={13} color={colors.primary} />
                     <Text style={styles.currencyBtnText}>{receipt?.category ?? ''}</Text>
-                    <Ionicons name="swap-horizontal" size={13} color={Colors.primary} />
+                    <Ionicons name="swap-horizontal" size={13} color={colors.primary} />
                   </>
               }
             </TouchableOpacity>
@@ -258,13 +260,13 @@ const handleCurrencyChange = async (code: string) => {
                     {currency} {item.totalPrice.toFixed(2)}
                   </Text>
                   <TouchableOpacity onPress={() => startEdit(item)} style={styles.iconBtn}>
-                    <Ionicons name="pencil" size={15} color={Colors.primary} />
+                    <Ionicons name="pencil" size={15} color={colors.primary} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDelete(item)}
                     style={[styles.iconBtn, styles.iconBtnDanger]}
                   >
-                    <Ionicons name="trash-outline" size={15} color={Colors.error} />
+                    <Ionicons name="trash-outline" size={15} color={colors.error} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -273,7 +275,7 @@ const handleCurrencyChange = async (code: string) => {
 
           {receipt?.items.length === 0 && (
             <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={40} color={Colors.textMuted} />
+              <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
               <Text style={styles.emptyText}>
                 {isScanned ? 'Nothing could be extracted from the receipt. Add items manually below.' : 'No items yet. Add them below.'}
               </Text>
@@ -284,7 +286,7 @@ const handleCurrencyChange = async (code: string) => {
             style={styles.addBtn}
             onPress={() => setShowAddForm(true)}
           >
-            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+            <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
             <Text style={styles.addBtnText}>Add Item</Text>
           </TouchableOpacity>
 
@@ -297,10 +299,10 @@ const handleCurrencyChange = async (code: string) => {
                 disabled={savingCurrency}
               >
                 {savingCurrency
-                  ? <ActivityIndicator size="small" color={Colors.primary} />
+                  ? <ActivityIndicator size="small" color={colors.primary} />
                   : <>
                       <Text style={styles.currencyBtnText}>{currency}</Text>
-                      <Ionicons name="swap-horizontal" size={13} color={Colors.primary} />
+                      <Ionicons name="swap-horizontal" size={13} color={colors.primary} />
                     </>
                 }
               </TouchableOpacity>
@@ -352,7 +354,7 @@ const handleCurrencyChange = async (code: string) => {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Edit Item</Text>
                 <TouchableOpacity onPress={cancelEdit} style={styles.modalCloseBtn}>
-                  <Ionicons name="close" size={18} color={Colors.textSecondary} />
+                  <Ionicons name="close" size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <ItemForm
@@ -361,6 +363,8 @@ const handleCurrencyChange = async (code: string) => {
                 onSave={saveEdit}
                 onCancel={cancelEdit}
                 saving={saving}
+                colors={colors}
+                styles={styles}
               />
             </View>
           </KeyboardAvoidingView>
@@ -381,7 +385,7 @@ const handleCurrencyChange = async (code: string) => {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>New Item</Text>
                 <TouchableOpacity onPress={cancelAdd} style={styles.modalCloseBtn}>
-                  <Ionicons name="close" size={18} color={Colors.textSecondary} />
+                  <Ionicons name="close" size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <ItemForm
@@ -390,6 +394,8 @@ const handleCurrencyChange = async (code: string) => {
                 onSave={saveAdd}
                 onCancel={cancelAdd}
                 saving={adding}
+                colors={colors}
+                styles={styles}
               />
             </View>
           </KeyboardAvoidingView>
@@ -405,12 +411,16 @@ function ItemForm({
   onSave,
   onCancel,
   saving,
+  colors,
+  styles,
 }: {
   state: EditState;
   onChange: (s: EditState) => void;
   onSave: () => void;
   onCancel: () => void;
   saving: boolean;
+  colors: ColorPalette;
+  styles: ReturnType<typeof getStyles>;
 }) {
   return (
     <View style={styles.formInner}>
@@ -421,7 +431,7 @@ function ItemForm({
           value={state.name}
           onChangeText={(v) => onChange({ ...state, name: v })}
           placeholder="Item name"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={colors.textMuted}
         />
       </View>
       <View style={styles.row}>
@@ -433,7 +443,7 @@ function ItemForm({
             onChangeText={(v) => onChange({ ...state, quantity: v })}
             keyboardType="decimal-pad"
             placeholder="1"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
           />
         </View>
         <View style={[styles.fieldGroup, styles.flex]}>
@@ -444,7 +454,7 @@ function ItemForm({
             onChangeText={(v) => onChange({ ...state, unitPrice: v })}
             keyboardType="decimal-pad"
             placeholder="0.00"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
           />
         </View>
       </View>
@@ -464,8 +474,8 @@ function ItemForm({
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
@@ -475,8 +485,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderBottomColor: c.border,
+    backgroundColor: c.surface,
   },
   headerBtn: {
     width: 40,
@@ -484,33 +494,33 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: c.text },
   content: { padding: 16, gap: 12, paddingBottom: 24 },
-  subtitle: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  subtitle: { fontSize: 13, color: c.textSecondary, lineHeight: 19 },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   itemInfo: { flex: 1, gap: 3 },
-  itemName: { fontSize: 15, fontWeight: '600', color: Colors.text },
-  itemMeta: { fontSize: 13, color: Colors.textSecondary },
+  itemName: { fontSize: 15, fontWeight: '600', color: c.text },
+  itemMeta: { fontSize: 13, color: c.textSecondary },
   itemRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  itemTotal: { fontSize: 15, fontWeight: '700', color: Colors.text, marginRight: 4 },
+  itemTotal: { fontSize: 15, fontWeight: '700', color: c.text, marginRight: 4 },
   iconBtn: {
     width: 30,
     height: 30,
     borderRadius: 8,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconBtnDanger: { backgroundColor: Colors.errorLight },
+  iconBtnDanger: { backgroundColor: c.errorLight },
   formInner: { gap: 12 },
   modalOverlay: {
     flex: 1,
@@ -520,7 +530,7 @@ itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   },
   modalSheet: {
     width: '88%',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -538,27 +548,27 @@ itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   modalTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: Colors.text,
+    color: c.text,
   },
   modalCloseBtn: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   fieldGroup: { gap: 4 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: c.textSecondary },
   input: {
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: Colors.text,
-    backgroundColor: Colors.background,
+    color: c.text,
+    backgroundColor: c.background,
   },
   row: { flexDirection: 'row', gap: 12 },
   editActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
@@ -567,15 +577,15 @@ itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
   },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: Colors.textSecondary },
+  cancelBtnText: { fontSize: 14, fontWeight: '600', color: c.textSecondary },
   saveBtn: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     alignItems: 'center',
   },
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
@@ -587,13 +597,13 @@ itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     paddingVertical: 13,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: c.primary,
     borderStyle: 'dashed',
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
   },
-  addBtnText: { fontSize: 14, fontWeight: '700', color: Colors.primary },
+  addBtnText: { fontSize: 14, fontWeight: '700', color: c.primary },
   emptyState: { alignItems: 'center', gap: 10, paddingVertical: 24 },
-  emptyText: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  emptyText: { fontSize: 14, color: c.textSecondary, textAlign: 'center', lineHeight: 20 },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -602,34 +612,34 @@ itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     paddingTop: 4,
   },
   totalLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  totalLabel: { fontSize: 15, fontWeight: '600', color: Colors.textSecondary },
-  totalValue: { fontSize: 18, fontWeight: '800', color: Colors.text },
+  totalLabel: { fontSize: 15, fontWeight: '600', color: c.textSecondary },
+  totalValue: { fontSize: 18, fontWeight: '800', color: c.text },
   currencyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  currencyBtnText: { fontSize: 13, fontWeight: '700', color: Colors.primary },
+  currencyBtnText: { fontSize: 13, fontWeight: '700', color: c.primary },
   footer: {
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderTopColor: c.border,
+    backgroundColor: c.surface,
   },
   confirmBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 16,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

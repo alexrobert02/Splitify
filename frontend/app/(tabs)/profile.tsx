@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,11 +16,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { Colors } from '@/constants/Colors';
+import { useTheme, type ColorPalette, type ColorSchemePreference } from '@/context/ThemeContext';
 import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
+
+const THEME_OPTIONS: { value: ColorSchemePreference; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+  { value: 'system', label: 'System', icon: 'phone-portrait-outline' },
+  { value: 'light',  label: 'Light',  icon: 'sunny-outline' },
+  { value: 'dark',   label: 'Dark',   icon: 'moon-outline' },
+];
 
 export default function ProfileScreen() {
   const { user, logout, refreshUser } = useAuth();
+  const { colors, colorScheme, setColorScheme } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+
   const [editingName, setEditingName] = useState(false);
   const [editingRevolut, setEditingRevolut] = useState(false);
   const [name, setName] = useState(user?.name ?? '');
@@ -107,11 +116,10 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Account</Text>
           <View style={styles.sectionCard}>
 
-            {/* Email — not editable */}
             <View style={styles.menuItem}>
               <View style={styles.menuLeft}>
-                <View style={[styles.menuIcon, { backgroundColor: '#EEF2FF' }]}>
-                  <Ionicons name="mail" size={18} color="#6366F1" />
+                <View style={[styles.menuIcon, { backgroundColor: colors.primaryLight }]}>
+                  <Ionicons name="mail" size={18} color={colors.primary} />
                 </View>
                 <View>
                   <Text style={styles.menuText}>Email</Text>
@@ -122,22 +130,21 @@ export default function ProfileScreen() {
 
             <View style={styles.separator} />
 
-            {/* Display name */}
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => { setEditingName(true); setEditingRevolut(false); }}
               disabled={editingName}
             >
               <View style={styles.menuLeft}>
-                <View style={[styles.menuIcon, { backgroundColor: Colors.primaryLight }]}>
-                  <Ionicons name="person" size={18} color={Colors.primary} />
+                <View style={[styles.menuIcon, { backgroundColor: colors.primaryLight }]}>
+                  <Ionicons name="person" size={18} color={colors.primary} />
                 </View>
                 <View>
                   <Text style={styles.menuText}>Display name</Text>
                   <Text style={styles.menuSub}>{user?.name}</Text>
                 </View>
               </View>
-              {!editingName && <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />}
+              {!editingName && <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />}
             </TouchableOpacity>
             {editingName && (
               <View style={styles.inlineForm}>
@@ -147,7 +154,7 @@ export default function ProfileScreen() {
                   onChangeText={setName}
                   autoFocus
                   placeholder="Your name"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                 />
                 <View style={styles.editActions}>
                   <TouchableOpacity style={styles.cancelBtn} onPress={() => { setEditingName(false); setName(user?.name ?? ''); }}>
@@ -162,15 +169,14 @@ export default function ProfileScreen() {
 
             <View style={styles.separator} />
 
-            {/* Revolut */}
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => { setEditingRevolut(true); setEditingName(false); }}
               disabled={editingRevolut}
             >
               <View style={styles.menuLeft}>
-                <View style={[styles.menuIcon, { backgroundColor: '#EDE9FE' }]}>
-                  <Ionicons name="card-outline" size={18} color="#7C3AED" />
+                <View style={[styles.menuIcon, { backgroundColor: colors.primaryLight }]}>
+                  <Ionicons name="card-outline" size={18} color={colors.primary} />
                 </View>
                 <View>
                   <Text style={styles.menuText}>Revolut</Text>
@@ -179,7 +185,7 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
               </View>
-              {!editingRevolut && <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />}
+              {!editingRevolut && <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />}
             </TouchableOpacity>
             {editingRevolut && (
               <View style={styles.inlineForm}>
@@ -189,7 +195,7 @@ export default function ProfileScreen() {
                   onChangeText={setRevolutTag}
                   autoFocus
                   placeholder="e.g. john-doe"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
@@ -206,26 +212,61 @@ export default function ProfileScreen() {
 
             <View style={styles.separator} />
 
-            {/* Preferred currency */}
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => setCurrencyPickerVisible(true)}
               disabled={savingCurrency}
             >
               <View style={styles.menuLeft}>
-                <View style={[styles.menuIcon, { backgroundColor: '#ECFDF5' }]}>
+                <View style={[styles.menuIcon, { backgroundColor: colors.successLight }]}>
                   {savingCurrency
-                    ? <ActivityIndicator size="small" color="#10B981" />
-                    : <Ionicons name="globe-outline" size={18} color="#10B981" />}
+                    ? <ActivityIndicator size="small" color={colors.success} />
+                    : <Ionicons name="globe-outline" size={18} color={colors.success} />}
                 </View>
                 <View>
                   <Text style={styles.menuText}>Preferred Currency</Text>
                   <Text style={styles.menuSub}>{user?.preferredCurrency ?? 'RON'}</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </TouchableOpacity>
 
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          <View style={styles.sectionCard}>
+            <View style={styles.menuItem}>
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: colors.primaryLight }]}>
+                  <Ionicons name="color-palette-outline" size={18} color={colors.primary} />
+                </View>
+                <Text style={styles.menuText}>Theme</Text>
+              </View>
+            </View>
+            <View style={styles.themeRow}>
+              {THEME_OPTIONS.map((opt) => {
+                const active = colorScheme === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.themeChip, active && styles.themeChipActive]}
+                    onPress={() => setColorScheme(opt.value)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={opt.icon}
+                      size={16}
+                      color={active ? '#fff' : colors.textSecondary}
+                    />
+                    <Text style={[styles.themeChipText, active && styles.themeChipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
 
@@ -237,7 +278,7 @@ export default function ProfileScreen() {
         />
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={Colors.error} />
+          <Ionicons name="log-out-outline" size={20} color={colors.error} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
 
@@ -247,51 +288,38 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const getStyles = (c: ColorPalette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   container: { paddingBottom: 48 },
   headerRow: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
-  heading: { fontSize: 24, fontWeight: '800', color: Colors.text },
+  heading: { fontSize: 24, fontWeight: '800', color: c.text },
   avatarSection: { alignItems: 'center', paddingTop: 12, paddingBottom: 28, paddingHorizontal: 20 },
   avatar: {
     width: 88,
     height: 88,
     borderRadius: 28,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 14,
     elevation: 8,
   },
   avatarText: { fontSize: 30, fontWeight: '800', color: '#fff' },
-  userName: { fontSize: 22, fontWeight: '800', color: Colors.text },
-  userEmail: { fontSize: 14, color: Colors.textSecondary, marginTop: 3 },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  label: { fontSize: 12, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  userName: { fontSize: 22, fontWeight: '800', color: c.text },
+  userEmail: { fontSize: 14, color: c.textSecondary, marginTop: 3 },
   input: {
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.text,
-    backgroundColor: Colors.background,
+    color: c.text,
+    backgroundColor: c.background,
     marginBottom: 12,
   },
   inlineForm: { paddingHorizontal: 16, paddingBottom: 14 },
@@ -299,15 +327,15 @@ const styles = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  cancelText: { fontSize: 14, fontWeight: '600', color: Colors.textSecondary },
+  cancelText: { fontSize: 14, fontWeight: '600', color: c.textSecondary },
   saveBtn: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -315,9 +343,9 @@ const styles = StyleSheet.create({
   saveText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
   section: { marginHorizontal: 20, marginBottom: 24 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10, marginLeft: 4 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: c.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10, marginLeft: 4 },
   sectionCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -326,7 +354,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-  separator: { height: 1, backgroundColor: Colors.divider, marginLeft: 62 },
+  separator: { height: 1, backgroundColor: c.divider, marginLeft: 62 },
   menuItem: {
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -336,18 +364,42 @@ const styles = StyleSheet.create({
   },
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   menuIcon: { width: 38, height: 38, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
-  menuText: { fontSize: 15, fontWeight: '600', color: Colors.text },
-  menuSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  menuText: { fontSize: 15, fontWeight: '600', color: c.text },
+  menuSub: { fontSize: 12, color: c.textSecondary, marginTop: 2 },
+  themeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  themeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: c.border,
+    backgroundColor: c.background,
+  },
+  themeChipActive: {
+    backgroundColor: c.primary,
+    borderColor: c.primary,
+  },
+  themeChipText: { fontSize: 13, fontWeight: '600', color: c.textSecondary },
+  themeChipTextActive: { color: '#fff' },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.errorLight,
+    backgroundColor: c.errorLight,
     borderRadius: 16,
     paddingVertical: 15,
     marginHorizontal: 20,
     marginBottom: 8,
   },
-  logoutText: { fontSize: 15, fontWeight: '700', color: Colors.error },
+  logoutText: { fontSize: 15, fontWeight: '700', color: c.error },
 });

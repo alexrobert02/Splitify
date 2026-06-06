@@ -1,30 +1,34 @@
-﻿import { Tabs } from 'expo-router';
+import { useMemo } from 'react';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
-import React from "react";
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNotifications } from '@/context/NotificationContext';
+import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 function TabIcon({ name, focused }: { name: IoniconsName; focused: boolean }) {
+  const { colors } = useTheme();
   return (
     <Ionicons
       name={focused ? name : (`${name}-outline` as IoniconsName)}
       size={24}
-      color={focused ? Colors.tabBarActive : Colors.tabBarInactive}
+      color={focused ? colors.tabBarActive : colors.tabBarInactive}
     />
   );
 }
 
 function NotificationTabIcon({ focused }: { focused: boolean }) {
+  const { colors } = useTheme();
   const { unreadCount } = useNotifications();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   return (
     <View>
       <Ionicons
         name={focused ? 'notifications' : 'notifications-outline'}
         size={24}
-        color={focused ? Colors.tabBarActive : Colors.tabBarInactive}
+        color={focused ? colors.tabBarActive : colors.tabBarInactive}
       />
       {unreadCount > 0 && (
         <View style={styles.badge}>
@@ -35,12 +39,12 @@ function NotificationTabIcon({ focused }: { focused: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (c: ColorPalette) => StyleSheet.create({
   badge: {
     position: 'absolute',
     top: -4,
     right: -8,
-    backgroundColor: Colors.error,
+    backgroundColor: c.error,
     borderRadius: 9,
     minWidth: 18,
     height: 18,
@@ -56,19 +60,20 @@ const styles = StyleSheet.create({
 });
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.tabBarBg,
-          borderTopColor: Colors.border,
+          backgroundColor: colors.tabBarBg,
+          borderTopColor: colors.border,
           height: 60,
           paddingBottom: 8,
           paddingTop: 4,
         },
-        tabBarActiveTintColor: Colors.tabBarActive,
-        tabBarInactiveTintColor: Colors.tabBarInactive,
+        tabBarActiveTintColor: colors.tabBarActive,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
@@ -110,4 +115,3 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
-

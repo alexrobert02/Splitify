@@ -1,24 +1,2 @@
-export const Colors = {
-  primary: '#5B5BD6',
-  primaryDark: '#4747C2',
-  primaryLight: '#EEEEFF',
-  background: '#F8F9FC',
-  surface: '#FFFFFF',
-  text: '#1C1C2E',
-  textSecondary: '#6B7280',
-  textMuted: '#9CA3AF',
-  border: '#E5E7EB',
-  divider: '#F3F4F6',
-  success: '#10B981',
-  successLight: '#ECFDF5',
-  error: '#EF4444',
-  errorLight: '#FEF2F2',
-  warning: '#F59E0B',
-  warningLight: '#FFFBEB',
-  money: '#10B981',
-  tabBarBg: '#FFFFFF',
-  tabBarActive: '#5B5BD6',
-  tabBarInactive: '#9CA3AF',
-  shadow: 'rgba(0,0,0,0.08)',
-  overlay: 'rgba(0,0,0,0.4)',
-};
+export { lightColors as Colors, lightColors, darkColors } from '@/context/ThemeContext';
+export type { ColorPalette } from '@/context/ThemeContext';
