@@ -11,7 +11,6 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +18,7 @@ import { api } from '@/lib/api';
 import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
 import { CategoryPickerModal, CategorySelector } from '@/components/CategoryPickerModal';
+import { DatePickerModal } from '@/components/DatePickerModal';
 import { useAuth } from '@/context/AuthContext';
 import type { GroupDto, UserDto, ReceiptCategory, RecurrenceFrequency, SplitType } from '@/types';
 
@@ -189,18 +189,6 @@ export default function NewRecurringScreen() {
                 {startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </Text>
             </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                mode="date"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                value={startDate}
-                minimumDate={new Date()}
-                onChange={(_, date) => {
-                  setShowDatePicker(Platform.OS === 'ios');
-                  if (date) setStartDate(date);
-                }}
-              />
-            )}
           </View>
 
           <View>
@@ -317,6 +305,13 @@ export default function NewRecurringScreen() {
         selected={category}
         onSelect={setCategory}
         onClose={() => setCategoryModal(false)}
+      />
+      <DatePickerModal
+        visible={showDatePicker}
+        value={startDate}
+        minimumDate={new Date()}
+        onSelect={setStartDate}
+        onClose={() => setShowDatePicker(false)}
       />
     </SafeAreaView>
   );
