@@ -306,9 +306,6 @@ export default function StatsScreen() {
             <Text style={styles.heading}>Statistics</Text>
             <Text style={styles.subheading}>Your paid breakdown</Text>
           </View>
-          <View style={[styles.headerIcon, { backgroundColor: Colors.primaryLight }]}>
-            <Ionicons name="bar-chart" size={22} color={Colors.primary} />
-          </View>
         </View>
 
         {/* Period filter chips */}

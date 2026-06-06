@@ -229,9 +229,6 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
           <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0]}</Text>
           <Text style={styles.heading}>Receipts</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-          <Ionicons name="add" size={22} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -284,6 +281,11 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
           </TouchableOpacity>
         )}
       />
+
+      <TouchableOpacity style={styles.fabExtended} onPress={() => setModalVisible(true)}>
+        <Ionicons name="add" size={20} color="#fff" />
+        <Text style={styles.fabExtendedText}>New Group</Text>
+      </TouchableOpacity>
 
       <Modal visible={modalVisible} transparent animationType="slide">
         <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
@@ -365,15 +367,6 @@ function SoloView({ onBack }: { onBack: () => void }) {
 
   useFocusEffect(useCallback(() => { void load(); }, []));
 
-  const handleDelete = async (id: string) => {
-    try {
-      await api.receipts.delete(id);
-      setReceipts((prev) => prev.filter((r) => r.id !== id));
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    }
-  };
-
   if (loading) return <LoadingView />;
 
   return (
@@ -409,8 +402,9 @@ function SoloView({ onBack }: { onBack: () => void }) {
         )}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => setFabMenuVisible(true)}>
-        <Ionicons name="add" size={26} color="#fff" />
+      <TouchableOpacity style={styles.fabExtended} onPress={() => setFabMenuVisible(true)}>
+        <Ionicons name="add" size={20} color="#fff" />
+        <Text style={styles.fabExtendedText}>Add Receipt</Text>
       </TouchableOpacity>
 
       <FabMenu
@@ -499,15 +493,6 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
     ]);
   };
 
-  const handleDeleteReceipt = async (receiptId: string) => {
-    try {
-      await api.receipts.delete(receiptId);
-      setReceipts(prev => prev.filter(r => r.id !== receiptId));
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    }
-  };
-
   if (loading) return <LoadingView />;
   if (!group) return null;
 
@@ -580,8 +565,9 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
         })()}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => setFabMenuVisible(true)}>
-        <Ionicons name="add" size={26} color="#fff" />
+      <TouchableOpacity style={styles.fabExtended} onPress={() => setFabMenuVisible(true)}>
+        <Ionicons name="add" size={20} color="#fff" />
+        <Text style={styles.fabExtendedText}>Add Receipt</Text>
       </TouchableOpacity>
 
       <FabMenu
@@ -688,7 +674,6 @@ const styles = StyleSheet.create({
   pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   greeting: { fontSize: 14, color: Colors.textSecondary, marginBottom: 2 },
   heading: { fontSize: 24, fontWeight: '800', color: Colors.text },
-  addBtn: { backgroundColor: Colors.primary, borderRadius: 12, width: 40, height: 40, justifyContent: 'center', alignItems: 'center', shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
 
   detailHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.border },
   backBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' },
@@ -735,7 +720,8 @@ const styles = StyleSheet.create({
   scanGroupBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 4 },
   scanGroupBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  fab: { position: 'absolute', bottom: 24, right: 20, backgroundColor: Colors.primary, borderRadius: 16, width: 56, height: 56, justifyContent: 'center', alignItems: 'center' },
+  fabExtended: { position: 'absolute', bottom: 24, right: 20, backgroundColor: Colors.primary, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  fabExtendedText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   fabMenuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
   fabMenuSheet: { position: 'absolute', right: 20, backgroundColor: Colors.surface, borderRadius: 14, paddingVertical: 6, minWidth: 190, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 10 },
   fabMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },

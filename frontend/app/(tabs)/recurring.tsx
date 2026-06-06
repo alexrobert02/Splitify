@@ -178,13 +178,6 @@ export default function RecurringScreen() {
               <Text style={styles.heading}>Recurring</Text>
               <Text style={styles.subheading}>Scheduled expense splits</Text>
             </View>
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => router.push('/recurring/new' as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="add" size={22} color="#fff" />
-            </TouchableOpacity>
           </View>
         }
         ListEmptyComponent={
@@ -195,6 +188,15 @@ export default function RecurringScreen() {
           </View>
         }
       />
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/recurring/new' as any)}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="add" size={20} color="#fff" />
+        <Text style={styles.fabText}>New Recurring</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -211,21 +213,26 @@ const styles = StyleSheet.create({
   },
   heading: { fontSize: 24, fontWeight: '800', color: Colors.text },
   subheading: { fontSize: 14, color: Colors.textSecondary, marginTop: 2 },
-  addBtn: {
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
     backgroundColor: Colors.primary,
-    borderRadius: 12,
-    width: 40,
-    height: 40,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 6,
   },
+  fabText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
-  list: { padding: 20, gap: 10 },
+  list: { padding: 20, gap: 10, paddingBottom: 90 },
   emptyContainer: { padding: 20 },
   empty: { alignItems: 'center', gap: 10, paddingTop: 64 },
   emptyTitle: { fontSize: 17, fontWeight: '600', color: Colors.text },

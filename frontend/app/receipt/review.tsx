@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
-  Keyboard,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,27 +46,7 @@ export default function ReviewScreen() {
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
 
-  const busy = editingId !== null || showAddForm;
-  const scrollRef = useRef<ScrollView>(null);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
-    return () => { show.remove(); hide.remove(); };
-  }, []);
-
-  useEffect(() => {
-    if (showAddForm) {
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }));
-    }
-  }, [showAddForm]);
-
-  const handleAddFormFocus = () => {
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }));
-  };
-
-  const handleCurrencyChange = async (code: string) => {
+const handleCurrencyChange = async (code: string) => {
     setSavingCurrency(true);
     try {
       const updated = await api.receipts.update(id, { currency: code });
@@ -134,7 +114,8 @@ export default function ReviewScreen() {
 
   const cancelEdit = () => setEditingId(null);
 
-  const saveEdit = async (item: ReceiptItemDto) => {
+  const saveEdit = async () => {
+    if (!editingId) return;
     const qty = parseFloat(editState.quantity);
     const price = parseFloat(editState.unitPrice);
     if (!editState.name.trim() || isNaN(qty) || isNaN(price) || qty <= 0 || price < 0) {
@@ -143,13 +124,13 @@ export default function ReviewScreen() {
     }
     setSaving(true);
     try {
-      const updated = await api.receipts.updateItem(id, item.id, {
+      const updated = await api.receipts.updateItem(id, editingId, {
         name: editState.name.trim(),
         quantity: qty,
         unitPrice: price,
       });
       setReceipt((prev) =>
-        prev ? { ...prev, items: prev.items.map((i) => (i.id === item.id ? updated : i)) } : prev
+        prev ? { ...prev, items: prev.items.map((i) => (i.id === editingId ? updated : i)) } : prev
       );
       setEditingId(null);
     } catch (e: any) {
@@ -238,7 +219,7 @@ export default function ReviewScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {isScanned && (
             <Text style={styles.subtitle}>
               Review and correct the items extracted from your receipt before continuing.
@@ -250,7 +231,7 @@ export default function ReviewScreen() {
             <TouchableOpacity
               style={styles.currencyBtn}
               onPress={() => setCategoryPickerVisible(true)}
-              disabled={savingCategory || busy}
+              disabled={savingCategory}
             >
               {savingCategory
                 ? <ActivityIndicator size="small" color={Colors.primary} />
@@ -263,54 +244,34 @@ export default function ReviewScreen() {
             </TouchableOpacity>
           </View>
 
-          {receipt?.items.map((item) =>
-            editingId === item.id ? (
-              <View
-                key={item.id}
-                style={[styles.card, styles.cardEditing]}
-              >
-                <ItemForm
-                  state={editState}
-                  onChange={setEditState}
-                  onSave={() => saveEdit(item)}
-                  onCancel={cancelEdit}
-                  saving={saving}
-                />
-              </View>
-            ) : (
-              <View key={item.id} style={styles.card}>
-                <View style={styles.itemRow}>
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemMeta}>
-                      {item.quantity} × {currency} {item.unitPrice.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.itemRight}>
-                    <Text style={styles.itemTotal}>
-                      {currency} {item.totalPrice.toFixed(2)}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => startEdit(item)}
-                      style={styles.iconBtn}
-                      disabled={busy}
-                    >
-                      <Ionicons name="pencil" size={15} color={busy ? Colors.textMuted : Colors.primary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDelete(item)}
-                      style={[styles.iconBtn, styles.iconBtnDanger]}
-                      disabled={busy}
-                    >
-                      <Ionicons name="trash-outline" size={15} color={busy ? Colors.textMuted : Colors.error} />
-                    </TouchableOpacity>
-                  </View>
+          {receipt?.items.map((item) => (
+            <View key={item.id} style={styles.card}>
+              <View style={styles.itemRow}>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemMeta}>
+                    {item.quantity} × {currency} {item.unitPrice.toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.itemRight}>
+                  <Text style={styles.itemTotal}>
+                    {currency} {item.totalPrice.toFixed(2)}
+                  </Text>
+                  <TouchableOpacity onPress={() => startEdit(item)} style={styles.iconBtn}>
+                    <Ionicons name="pencil" size={15} color={Colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDelete(item)}
+                    style={[styles.iconBtn, styles.iconBtnDanger]}
+                  >
+                    <Ionicons name="trash-outline" size={15} color={Colors.error} />
+                  </TouchableOpacity>
                 </View>
               </View>
-            )
-          )}
+            </View>
+          ))}
 
-          {receipt?.items.length === 0 && !showAddForm && (
+          {receipt?.items.length === 0 && (
             <View style={styles.emptyState}>
               <Ionicons name="receipt-outline" size={40} color={Colors.textMuted} />
               <Text style={styles.emptyText}>
@@ -319,30 +280,13 @@ export default function ReviewScreen() {
             </View>
           )}
 
-          {showAddForm ? (
-            <View style={[styles.card, styles.cardEditing]}>
-              <Text style={styles.addFormTitle}>New Item</Text>
-              <ItemForm
-                state={addState}
-                onChange={setAddState}
-                onSave={saveAdd}
-                onCancel={cancelAdd}
-                saving={adding}
-                onFocus={handleAddFormFocus}
-              />
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.addBtn, editingId !== null && styles.addBtnDisabled]}
-              onPress={() => setShowAddForm(true)}
-              disabled={editingId !== null}
-            >
-              <Ionicons name="add-circle-outline" size={18} color={editingId !== null ? Colors.textMuted : Colors.primary} />
-              <Text style={[styles.addBtnText, editingId !== null && styles.addBtnTextDisabled]}>
-                Add Item
-              </Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => setShowAddForm(true)}
+          >
+            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+            <Text style={styles.addBtnText}>Add Item</Text>
+          </TouchableOpacity>
 
           <View style={styles.totalRow}>
             <View style={styles.totalLeft}>
@@ -350,7 +294,7 @@ export default function ReviewScreen() {
               <TouchableOpacity
                 style={styles.currencyBtn}
                 onPress={() => setCurrencyPickerVisible(true)}
-                disabled={savingCurrency || busy}
+                disabled={savingCurrency}
               >
                 {savingCurrency
                   ? <ActivityIndicator size="small" color={Colors.primary} />
@@ -378,23 +322,78 @@ export default function ReviewScreen() {
           />
         </ScrollView>
 
-        {!keyboardVisible && (
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.confirmBtn, (busy || confirming) && styles.btnDisabled]}
-              onPress={handleConfirm}
-              disabled={busy || confirming}
-            >
-              {confirming
-                ? <ActivityIndicator color="#fff" />
-                : <>
-                    <Text style={styles.confirmBtnText}>Confirm & Continue</Text>
-                    <Ionicons name="arrow-forward" size={20} color="#fff" />
-                  </>
-              }
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.confirmBtn, confirming && styles.btnDisabled]}
+            onPress={handleConfirm}
+            disabled={confirming}
+          >
+            {confirming
+              ? <ActivityIndicator color="#fff" />
+              : <>
+                  <Text style={styles.confirmBtnText}>Confirm & Continue</Text>
+                  <Ionicons name="arrow-forward" size={20} color="#fff" />
+                </>
+            }
+          </TouchableOpacity>
+        </View>
+        <Modal
+          visible={editingId !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={cancelEdit}
+        >
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={cancelEdit} activeOpacity={1} />
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Item</Text>
+                <TouchableOpacity onPress={cancelEdit} style={styles.modalCloseBtn}>
+                  <Ionicons name="close" size={18} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <ItemForm
+                state={editState}
+                onChange={setEditState}
+                onSave={saveEdit}
+                onCancel={cancelEdit}
+                saving={saving}
+              />
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        <Modal
+          visible={showAddForm}
+          transparent
+          animationType="fade"
+          onRequestClose={cancelAdd}
+        >
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={cancelAdd} activeOpacity={1} />
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>New Item</Text>
+                <TouchableOpacity onPress={cancelAdd} style={styles.modalCloseBtn}>
+                  <Ionicons name="close" size={18} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <ItemForm
+                state={addState}
+                onChange={setAddState}
+                onSave={saveAdd}
+                onCancel={cancelAdd}
+                saving={adding}
+              />
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -406,16 +405,12 @@ function ItemForm({
   onSave,
   onCancel,
   saving,
-  onFocus,
-  autoFocus,
 }: {
   state: EditState;
   onChange: (s: EditState) => void;
   onSave: () => void;
   onCancel: () => void;
   saving: boolean;
-  onFocus?: () => void;
-  autoFocus?: boolean;
 }) {
   return (
     <View style={styles.formInner}>
@@ -427,8 +422,6 @@ function ItemForm({
           onChangeText={(v) => onChange({ ...state, name: v })}
           placeholder="Item name"
           placeholderTextColor={Colors.textMuted}
-          autoFocus={autoFocus}
-          onFocus={onFocus}
         />
       </View>
       <View style={styles.row}>
@@ -441,7 +434,6 @@ function ItemForm({
             keyboardType="decimal-pad"
             placeholder="1"
             placeholderTextColor={Colors.textMuted}
-            onFocus={onFocus}
           />
         </View>
         <View style={[styles.fieldGroup, styles.flex]}>
@@ -453,7 +445,6 @@ function ItemForm({
             keyboardType="decimal-pad"
             placeholder="0.00"
             placeholderTextColor={Colors.textMuted}
-            onFocus={onFocus}
           />
         </View>
       </View>
@@ -505,8 +496,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  cardEditing: { borderColor: Colors.primary },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   itemInfo: { flex: 1, gap: 3 },
   itemName: { fontSize: 15, fontWeight: '600', color: Colors.text },
   itemMeta: { fontSize: 13, color: Colors.textSecondary },
@@ -522,7 +512,42 @@ const styles = StyleSheet.create({
   },
   iconBtnDanger: { backgroundColor: Colors.errorLight },
   formInner: { gap: 12 },
-  addFormTitle: { fontSize: 13, fontWeight: '700', color: Colors.primary, marginBottom: -4 },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
+  modalSheet: {
+    width: '88%',
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  modalCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   fieldGroup: { gap: 4 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
   input: {
@@ -566,9 +591,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     backgroundColor: Colors.primaryLight,
   },
-  addBtnDisabled: { borderColor: Colors.border, backgroundColor: Colors.surface },
   addBtnText: { fontSize: 14, fontWeight: '700', color: Colors.primary },
-  addBtnTextDisabled: { color: Colors.textMuted },
   emptyState: { alignItems: 'center', gap: 10, paddingVertical: 24 },
   emptyText: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
   totalRow: {
