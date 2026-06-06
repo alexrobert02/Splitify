@@ -21,7 +21,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme, type ColorPalette } from '@/context/ThemeContext';
-import {CATEGORY_CONFIG, useCategoryConfig} from '@/constants/categories';
+import {useCategoryConfig} from '@/constants/categories';
 import type { GroupDto, UserDto, ReceiptDto } from '@/types';
 
 type ActiveView = { type: 'picker' } | { type: 'solo' } | { type: 'group'; id: string };
@@ -291,7 +291,7 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
       />
 
       <TouchableOpacity style={styles.fabExtended} onPress={() => setModalVisible(true)}>
-        <Ionicons name="add" size={20} color="#fff" />
+        <Ionicons name="add" size={18} color="#fff" />
         <Text style={styles.fabExtendedText}>New Group</Text>
       </TouchableOpacity>
 
@@ -340,12 +340,12 @@ function FabMenu({
       <TouchableOpacity style={styles.fabMenuOverlay} activeOpacity={1} onPress={onClose}>
         <View style={[styles.fabMenuSheet, { bottom: tabBarHeight + 24 }]}>
           <TouchableOpacity style={styles.fabMenuItem} onPress={onManual}>
-            <Ionicons name="create-outline" size={20} color={colors.text} />
+            <Ionicons name="create-outline" size={17} color={colors.text} />
             <Text style={styles.fabMenuItemText}>Add manually</Text>
           </TouchableOpacity>
           <View style={styles.fabMenuDivider} />
           <TouchableOpacity style={styles.fabMenuItem} onPress={onScan}>
-            <Ionicons name="camera-outline" size={20} color={colors.text} />
+            <Ionicons name="camera-outline" size={17} color={colors.text} />
             <Text style={styles.fabMenuItemText}>Scan receipt</Text>
           </TouchableOpacity>
         </View>
@@ -415,7 +415,7 @@ function SoloView({ onBack }: { onBack: () => void }) {
       />
 
       <TouchableOpacity style={styles.fabExtended} onPress={() => setFabMenuVisible(true)}>
-        <Ionicons name="add" size={20} color="#fff" />
+        <Ionicons name="add" size={18} color="#fff" />
         <Text style={styles.fabExtendedText}>Add Receipt</Text>
       </TouchableOpacity>
 
@@ -580,7 +580,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
       </ScrollView>
 
       <TouchableOpacity style={styles.fabExtended} onPress={() => setFabMenuVisible(true)}>
-        <Ionicons name="add" size={20} color="#fff" />
+        <Ionicons name="add" size={18} color="#fff" />
         <Text style={styles.fabExtendedText}>Add Receipt</Text>
       </TouchableOpacity>
 
@@ -731,12 +731,12 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   scanGroupBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: c.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 4 },
   scanGroupBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  fabExtended: { position: 'absolute', bottom: 24, right: 20, backgroundColor: c.primary, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: c.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
-  fabExtendedText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  fabExtended: { position: 'absolute', bottom: 24, right: 20, backgroundColor: c.primary, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 6, shadowColor: c.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  fabExtendedText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   fabMenuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
-  fabMenuSheet: { position: 'absolute', right: 20, backgroundColor: c.surface, borderRadius: 14, paddingVertical: 6, minWidth: 190, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 10 },
-  fabMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  fabMenuItemText: { fontSize: 15, fontWeight: '600', color: c.text },
+  fabMenuSheet: { position: 'absolute', right: 20, backgroundColor: c.surface, borderRadius: 12, paddingVertical: 4, minWidth: 170, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 10 },
+  fabMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 11 },
+  fabMenuItemText: { fontSize: 14, fontWeight: '600', color: c.text },
   fabMenuDivider: { height: 1, backgroundColor: c.border, marginHorizontal: 8 },
 
   memberCard: { backgroundColor: c.background, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
