@@ -118,6 +118,20 @@ export interface RecurringExpenseDto {
   createdAt: string;
 }
 
+export interface DebtDto {
+  fromId: string;
+  fromName: string;
+  toId: string;
+  toName: string;
+  toRevolutTag?: string;
+  amount: number;
+  currency: string;
+}
+
+export interface GroupSettlementDto {
+  debts: DebtDto[];
+}
+
 export type NotificationType = 'GROUP_ADDED' | 'PAYMENT_REQUESTED' | 'PAYMENT_RECEIVED';
 
 export interface NotificationDto {

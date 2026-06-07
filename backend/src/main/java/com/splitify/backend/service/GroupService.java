@@ -1,21 +1,24 @@
 package com.splitify.backend.service;
 
 import com.splitify.backend.dto.group.CreateGroupRequest;
+import com.splitify.backend.dto.group.DebtDto;
 import com.splitify.backend.dto.group.GroupDto;
+import com.splitify.backend.dto.group.GroupSettlementDto;
 import com.splitify.backend.dto.user.UserDto;
-import com.splitify.backend.entity.Group;
-import com.splitify.backend.entity.NotificationType;
-import com.splitify.backend.entity.User;
+import com.splitify.backend.entity.*;
 import com.splitify.backend.exception.BadRequestException;
 import com.splitify.backend.exception.ResourceNotFoundException;
 import com.splitify.backend.repository.GroupRepository;
+import com.splitify.backend.repository.ReceiptRepository;
 import com.splitify.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class GroupService {
 
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
+    private final ReceiptRepository receiptRepository;
     private final NotificationService notificationService;
 
     @Transactional
@@ -97,6 +101,88 @@ public class GroupService {
             throw new BadRequestException("Only the group creator can delete the group");
         }
         groupRepository.delete(group);
+    }
+
+    public GroupSettlementDto getGroupSettlement(UUID groupId, UUID currentUserId) {
+        Group group = findGroup(groupId);
+        assertMember(group, currentUserId);
+
+        List<Receipt> pendingReceipts = receiptRepository.findByGroupIdOrderByCreatedAtDesc(groupId)
+            .stream()
+            .filter(r -> r.getStatus() == ReceiptStatus.PENDING_PAYMENT)
+            .toList();
+
+        // net balance per user: positive = is owed money, negative = owes money
+        Map<UUID, BigDecimal> balance = new HashMap<>();
+        Map<UUID, String> names = new HashMap<>();
+        Map<UUID, String> revolutTags = new HashMap<>();
+        String currency = group.getMembers().isEmpty() ? "RON" : "RON";
+
+        for (Receipt receipt : pendingReceipts) {
+            UUID scannerId = receipt.getCreatedBy().getId();
+            names.put(scannerId, receipt.getCreatedBy().getName());
+            revolutTags.put(scannerId, receipt.getCreatedBy().getRevolutTag());
+            if (receipt.getCurrency() != null) currency = receipt.getCurrency();
+
+            Set<UUID> paidUserIds = receipt.getPayments().stream()
+                .map(p -> p.getPayer().getId())
+                .collect(Collectors.toSet());
+
+            // sum amountOwed per non-scanner participant for this receipt
+            Map<UUID, BigDecimal> receiptOwed = new HashMap<>();
+            for (ReceiptItem item : receipt.getItems()) {
+                for (ItemAssignment assignment : item.getAssignments()) {
+                    UUID uid = assignment.getUser().getId();
+                    if (!uid.equals(scannerId)) {
+                        names.put(uid, assignment.getUser().getName());
+                        revolutTags.put(uid, assignment.getUser().getRevolutTag());
+                        BigDecimal amt = assignment.getAmountOwed() != null ? assignment.getAmountOwed() : BigDecimal.ZERO;
+                        receiptOwed.merge(uid, amt, BigDecimal::add);
+                    }
+                }
+            }
+
+            for (Map.Entry<UUID, BigDecimal> entry : receiptOwed.entrySet()) {
+                UUID debtorId = entry.getKey();
+                if (!paidUserIds.contains(debtorId)) {
+                    balance.merge(debtorId, entry.getValue().negate(), BigDecimal::add);
+                    balance.merge(scannerId, entry.getValue(), BigDecimal::add);
+                }
+            }
+        }
+
+        // Greedy debt simplification
+        List<UUID> creditorIds = new ArrayList<>();
+        List<BigDecimal> creditorAmts = new ArrayList<>();
+        List<UUID> debtorIds = new ArrayList<>();
+        List<BigDecimal> debtorAmts = new ArrayList<>();
+
+        for (Map.Entry<UUID, BigDecimal> e : balance.entrySet()) {
+            int cmp = e.getValue().compareTo(BigDecimal.ZERO);
+            if (cmp > 0) { creditorIds.add(e.getKey()); creditorAmts.add(e.getValue()); }
+            else if (cmp < 0) { debtorIds.add(e.getKey()); debtorAmts.add(e.getValue().negate()); }
+        }
+
+        List<DebtDto> debts = new ArrayList<>();
+        int i = 0, j = 0;
+        while (i < creditorIds.size() && j < debtorIds.size()) {
+            BigDecimal settle = creditorAmts.get(i).min(debtorAmts.get(j));
+            if (settle.compareTo(new BigDecimal("0.01")) >= 0) {
+                debts.add(new DebtDto(
+                    debtorIds.get(j), names.get(debtorIds.get(j)),
+                    creditorIds.get(i), names.get(creditorIds.get(i)),
+                    revolutTags.get(creditorIds.get(i)),
+                    settle.setScale(2, RoundingMode.HALF_UP),
+                    currency
+                ));
+            }
+            creditorAmts.set(i, creditorAmts.get(i).subtract(settle));
+            debtorAmts.set(j, debtorAmts.get(j).subtract(settle));
+            if (creditorAmts.get(i).compareTo(BigDecimal.ZERO) == 0) i++;
+            if (debtorAmts.get(j).compareTo(BigDecimal.ZERO) == 0) j++;
+        }
+
+        return new GroupSettlementDto(debts);
     }
 
     private Group findGroup(UUID id) {

@@ -3,6 +3,7 @@ import type {
   AuthResponse,
   UserDto,
   GroupDto,
+  GroupSettlementDto,
   ReceiptDto,
   ReceiptItemDto,
   ReceiptSummaryDto,
@@ -111,6 +112,8 @@ export const api = {
       request<void>(`/api/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
     delete: (groupId: string) =>
       request<void>(`/api/groups/${groupId}`, { method: 'DELETE' }),
+    settlement: (groupId: string) =>
+      request<GroupSettlementDto>(`/api/groups/${groupId}/settlement`),
   },
 
   receipts: {

@@ -13,6 +13,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   BackHandler,
+  Linking,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +23,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 import {useCategoryConfig} from '@/constants/categories';
-import type { GroupDto, UserDto, ReceiptDto } from '@/types';
+import type { GroupDto, UserDto, ReceiptDto, GroupSettlementDto, DebtDto } from '@/types';
 
 type ActiveView = { type: 'picker' } | { type: 'solo' } | { type: 'group'; id: string };
 
@@ -454,6 +455,9 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
   const [filterUnpaid, setFilterUnpaid] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [settleVisible, setSettleVisible] = useState(false);
+  const [settlement, setSettlement] = useState<GroupSettlementDto | null>(null);
+  const [settlementLoading, setSettlementLoading] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false, unpaid = false) => {
     if (!isRefresh) setReceiptsLoading(true);
@@ -488,6 +492,18 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
       Alert.alert('Error', e.message);
     } finally {
       setAdding(false);
+    }
+  };
+
+  const openSettlement = async () => {
+    setSettleVisible(true);
+    setSettlementLoading(true);
+    try {
+      setSettlement(await api.groups.settlement(id));
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSettlementLoading(false);
     }
   };
 
@@ -527,6 +543,9 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
           <Text style={styles.detailHeaderTitle} numberOfLines={1}>{group.name}</Text>
           {group.description ? <Text style={styles.detailHeaderSub} numberOfLines={1}>{group.description}</Text> : null}
         </View>
+        <TouchableOpacity style={[styles.menuBtn, { marginRight: 6 }]} onPress={openSettlement}>
+          <Ionicons name="swap-horizontal-outline" size={20} color={colors.primary} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.menuBtn} onPress={() => setMenuVisible(true)}>
           <Ionicons name="ellipsis-vertical" size={20} color={colors.text} />
         </TouchableOpacity>
@@ -677,6 +696,74 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <Modal visible={settleVisible} transparent animationType="slide" onRequestClose={() => setSettleVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setSettleVisible(false)}>
+        <View style={styles.settleSheet} onStartShouldSetResponder={() => true}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Settle Up</Text>
+          <Text style={styles.modalSub}>Outstanding debts across all receipts in this group</Text>
+          {settlementLoading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: 24, marginBottom: 16 }} />
+          ) : !settlement || settlement.debts.length === 0 ? (
+            <View style={styles.settleEmpty}>
+              <Ionicons name="checkmark-circle" size={48} color={colors.success} />
+              <Text style={styles.settleEmptyTitle}>All settled up!</Text>
+              <Text style={styles.settleEmptySub}>No outstanding debts in this group.</Text>
+            </View>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 4 }}>
+              {settlement.debts.map((debt: DebtDto, idx: number) => {
+                const iAmDebtor = debt.fromId === user?.id;
+                const iAmCreditor = debt.toId === user?.id;
+                return (
+                  <View
+                    key={idx}
+                    style={[styles.debtCard, iAmDebtor && styles.debtCardMine]}
+                  >
+                    <View style={styles.debtRow}>
+                      <View style={styles.debtPerson}>
+                        <View style={[styles.debtAvatar, iAmDebtor && { backgroundColor: colors.errorLight }]}>
+                          <Text style={[styles.debtAvatarText, iAmDebtor && { color: colors.error }]}>
+                            {debt.fromName.slice(0, 2).toUpperCase()}
+                          </Text>
+                        </View>
+                        <Text style={styles.debtName} numberOfLines={1}>
+                          {iAmDebtor ? 'You' : debt.fromName}
+                        </Text>
+                      </View>
+                      <View style={styles.debtArrow}>
+                        <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
+                        <Text style={styles.debtAmt}>{debt.currency} {Number(debt.amount).toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.debtPerson}>
+                        <View style={[styles.debtAvatar, iAmCreditor && { backgroundColor: colors.successLight }]}>
+                          <Text style={[styles.debtAvatarText, iAmCreditor && { color: colors.success }]}>
+                            {debt.toName.slice(0, 2).toUpperCase()}
+                          </Text>
+                        </View>
+                        <Text style={styles.debtName} numberOfLines={1}>
+                          {iAmCreditor ? 'You' : debt.toName}
+                        </Text>
+                      </View>
+                    </View>
+                    {iAmDebtor && !!debt.toRevolutTag && (
+                      <TouchableOpacity
+                        style={styles.revolutBtn}
+                        onPress={() => Linking.openURL(`https://revolut.me/${debt.toRevolutTag}`)}
+                      >
+                        <Ionicons name="card-outline" size={15} color="#fff" />
+                        <Text style={styles.revolutBtnText}>Pay with Revolut</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -805,4 +892,27 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   primaryBtn: { flex: 1, backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   primaryBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
+
+  settleSheet: { backgroundColor: c.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '80%' },
+  settleEmpty: { alignItems: 'center', paddingVertical: 32, gap: 10 },
+  settleEmptyTitle: { fontSize: 18, fontWeight: '700', color: c.text },
+  settleEmptySub: { fontSize: 14, color: c.textSecondary, textAlign: 'center' },
+  debtCard: {
+    backgroundColor: c.background,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: c.border,
+  },
+  debtCardMine: { borderColor: c.error + '60', backgroundColor: c.errorLight },
+  debtRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  debtPerson: { alignItems: 'center', gap: 6, flex: 1 },
+  debtAvatar: { width: 38, height: 38, borderRadius: 10, backgroundColor: c.primaryLight, justifyContent: 'center', alignItems: 'center' },
+  debtAvatarText: { fontSize: 13, fontWeight: '800', color: c.primary },
+  debtName: { fontSize: 12, fontWeight: '600', color: c.text, textAlign: 'center' },
+  debtArrow: { alignItems: 'center', gap: 4, paddingHorizontal: 8 },
+  debtAmt: { fontSize: 13, fontWeight: '800', color: c.text },
+  revolutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#5B2EDA', borderRadius: 10, paddingVertical: 9, marginTop: 12 },
+  revolutBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });

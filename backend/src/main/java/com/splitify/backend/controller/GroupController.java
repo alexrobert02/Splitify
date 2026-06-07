@@ -2,6 +2,7 @@ package com.splitify.backend.controller;
 
 import com.splitify.backend.dto.group.CreateGroupRequest;
 import com.splitify.backend.dto.group.GroupDto;
+import com.splitify.backend.dto.group.GroupSettlementDto;
 import com.splitify.backend.service.GroupService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,13 @@ public class GroupController {
                                               @PathVariable UUID userId) {
         groupService.removeMember(groupId, currentUserId(userDetails), userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{groupId}/settlement")
+    public ResponseEntity<GroupSettlementDto> getGroupSettlement(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID groupId) {
+        return ResponseEntity.ok(groupService.getGroupSettlement(groupId, currentUserId(userDetails)));
     }
 
     @DeleteMapping("/{groupId}")
