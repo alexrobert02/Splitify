@@ -57,9 +57,11 @@ const STATUS_FILTER_OPTIONS: { key: string | null; label: string }[] = [
 function StatusFilterButton({
   value,
   onChange,
+  personal = false,
 }: {
   value: string | null;
   onChange: (v: string | null) => void;
+  personal?: boolean;
 }) {
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -69,6 +71,9 @@ function StatusFilterButton({
   const label = cfg ? cfg.label : 'All statuses';
   const color = cfg?.color ?? colors.textSecondary;
   const dropdownTop = insets.top + 60 + 44;
+  const options = personal
+    ? STATUS_FILTER_OPTIONS.filter(o => o.key !== 'PENDING_ASSIGNMENT' && o.key !== 'PENDING_PAYMENT')
+    : STATUS_FILTER_OPTIONS;
 
   return (
     <>
@@ -85,7 +90,7 @@ function StatusFilterButton({
         <TouchableOpacity style={styles.dropdownOverlay} activeOpacity={1} onPress={() => setOpen(false)} />
         <View style={[styles.dropdownSheet, { top: dropdownTop }]}>
           <Text style={styles.dropdownTitle}>Filter by status</Text>
-          {STATUS_FILTER_OPTIONS.map(opt => {
+          {options.map(opt => {
             const optCfg = opt.key ? STATUS_CONFIG[opt.key] : null;
             const optColor = optCfg?.color ?? colors.text;
             const selected = value === opt.key;
@@ -394,7 +399,7 @@ function SoloView({ onBack }: { onBack: () => void }) {
       </View>
 
       <View style={styles.groupFilters}>
-        <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
+        <StatusFilterButton value={statusFilter} onChange={setStatusFilter} personal />
       </View>
 
       <FlatList
