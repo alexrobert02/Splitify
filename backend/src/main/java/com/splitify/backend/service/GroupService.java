@@ -185,6 +185,41 @@ public class GroupService {
         return new GroupSettlementDto(debts);
     }
 
+    @Transactional
+    public void settleDebt(UUID groupId, UUID currentUserId, UUID debtorId) {
+        Group group = findGroup(groupId);
+        assertMember(group, currentUserId);
+
+        User debtor = findUser(debtorId);
+
+        receiptRepository.findByGroupIdOrderByCreatedAtDesc(groupId).stream()
+            .filter(r -> r.getStatus() == ReceiptStatus.PENDING_PAYMENT)
+            .filter(r -> r.getCreatedBy().getId().equals(currentUserId))
+            .forEach(receipt -> {
+                boolean hasAssignment = receipt.getItems().stream()
+                    .flatMap(item -> item.getAssignments().stream())
+                    .anyMatch(a -> a.getUser().getId().equals(debtorId));
+                if (!hasAssignment) return;
+
+                boolean alreadyPaid = receipt.getPayments().stream()
+                    .anyMatch(p -> p.getPayer().getId().equals(debtorId));
+                if (!alreadyPaid) {
+                    receipt.getPayments().add(Payment.builder().receipt(receipt).payer(debtor).build());
+                }
+
+                Set<UUID> assigneeIds = receipt.getItems().stream()
+                    .flatMap(item -> item.getAssignments().stream())
+                    .map(a -> a.getUser().getId())
+                    .collect(Collectors.toSet());
+                Set<UUID> paidIds = receipt.getPayments().stream()
+                    .map(p -> p.getPayer().getId()).collect(Collectors.toSet());
+                if (!assigneeIds.isEmpty() && paidIds.containsAll(assigneeIds)) {
+                    receipt.setStatus(ReceiptStatus.FINALIZED);
+                }
+                receiptRepository.save(receipt);
+            });
+    }
+
     private Group findGroup(UUID id) {
         return groupRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Group not found"));

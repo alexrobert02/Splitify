@@ -114,6 +114,11 @@ export const api = {
       request<void>(`/api/groups/${groupId}`, { method: 'DELETE' }),
     settlement: (groupId: string) =>
       request<GroupSettlementDto>(`/api/groups/${groupId}/settlement`),
+    settle: (groupId: string, debtorId: string) =>
+      request<void>(`/api/groups/${groupId}/settle`, {
+        method: 'POST',
+        body: JSON.stringify(debtorId),
+      }),
   },
 
   receipts: {

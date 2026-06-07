@@ -458,6 +458,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [settleVisible, setSettleVisible] = useState(false);
   const [settlement, setSettlement] = useState<GroupSettlementDto | null>(null);
   const [settlementLoading, setSettlementLoading] = useState(false);
+  const [settlingId, setSettlingId] = useState<string | null>(null);
 
   const loadData = useCallback(async (isRefresh = false, unpaid = false) => {
     if (!isRefresh) setReceiptsLoading(true);
@@ -504,6 +505,23 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
       Alert.alert('Error', e.message);
     } finally {
       setSettlementLoading(false);
+    }
+  };
+
+  const handleSettle = async (debtorId: string) => {
+    setSettlingId(debtorId);
+    try {
+      await api.groups.settle(id, debtorId);
+      const [s, r] = await Promise.all([
+        api.groups.settlement(id),
+        api.receipts.listByGroup(id, filterUnpaid),
+      ]);
+      setSettlement(s);
+      setReceipts(r.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSettlingId(null);
     }
   };
 
@@ -748,12 +766,29 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
                       </View>
                     </View>
                     {iAmDebtor && !!debt.toRevolutTag && (
+                      <View style={{ marginTop: 12 }}>
+                        <TouchableOpacity
+                          style={styles.revolutBtn}
+                          onPress={() => Linking.openURL(`https://revolut.me/${debt.toRevolutTag}`)}
+                        >
+                          <Ionicons name="card-outline" size={15} color="#fff" />
+                          <Text style={styles.revolutBtnText}>Pay with Revolut</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {iAmCreditor && (
                       <TouchableOpacity
-                        style={styles.revolutBtn}
-                        onPress={() => Linking.openURL(`https://revolut.me/${debt.toRevolutTag}`)}
+                        style={[styles.markSettledBtn, settlingId === debt.fromId && styles.btnDisabled, { marginTop: 12 }]}
+                        onPress={() => handleSettle(debt.fromId)}
+                        disabled={settlingId !== null}
                       >
-                        <Ionicons name="card-outline" size={15} color="#fff" />
-                        <Text style={styles.revolutBtnText}>Pay with Revolut</Text>
+                        {settlingId === debt.fromId
+                          ? <ActivityIndicator size="small" color={colors.success} />
+                          : <>
+                              <Ionicons name="checkmark-circle-outline" size={15} color={colors.success} />
+                              <Text style={styles.markSettledText}>Mark as Paid</Text>
+                            </>
+                        }
                       </TouchableOpacity>
                     )}
                   </View>
@@ -913,6 +948,8 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   debtName: { fontSize: 12, fontWeight: '600', color: c.text, textAlign: 'center' },
   debtArrow: { alignItems: 'center', gap: 4, paddingHorizontal: 8 },
   debtAmt: { fontSize: 13, fontWeight: '800', color: c.text },
-  revolutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#5B2EDA', borderRadius: 10, paddingVertical: 9, marginTop: 12 },
+  revolutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#5B2EDA', borderRadius: 10, paddingVertical: 9 },
   revolutBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  markSettledBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: c.successLight, borderRadius: 10, paddingVertical: 9 },
+  markSettledText: { fontSize: 13, fontWeight: '700', color: c.success },
 });

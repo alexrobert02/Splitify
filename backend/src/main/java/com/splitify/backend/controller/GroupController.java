@@ -62,6 +62,15 @@ public class GroupController {
         return ResponseEntity.ok(groupService.getGroupSettlement(groupId, currentUserId(userDetails)));
     }
 
+    @PostMapping("/{groupId}/settle")
+    public ResponseEntity<Void> settleDebt(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID groupId,
+            @RequestBody UUID creditorId) {
+        groupService.settleDebt(groupId, currentUserId(userDetails), creditorId);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{groupId}")
     public ResponseEntity<Void> deleteGroup(@AuthenticationPrincipal UserDetails userDetails,
                                              @PathVariable UUID groupId) {
