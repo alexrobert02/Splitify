@@ -43,7 +43,7 @@ public class GroupController {
     @PostMapping("/{groupId}/members")
     public ResponseEntity<GroupDto> addMember(@AuthenticationPrincipal UserDetails userDetails,
                                                @PathVariable UUID groupId,
-                                               @RequestBody String email) {
+                                               @RequestParam String email) {
         return ResponseEntity.ok(groupService.addMember(groupId, currentUserId(userDetails), email));
     }
 

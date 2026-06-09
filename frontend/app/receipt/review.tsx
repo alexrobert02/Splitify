@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Image,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,6 +34,8 @@ export default function ReviewScreen() {
   const isScanned = source === 'scan';
   const [receipt, setReceipt] = useState<ReceiptDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageExpanded, setImageExpanded] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editState, setEditState] = useState<EditState>(emptyEdit());
@@ -107,6 +110,9 @@ export default function ReviewScreen() {
       .then(setReceipt)
       .catch((e: any) => Alert.alert('Error', e.message))
       .finally(() => setLoading(false));
+    api.receipts.image(id)
+      .then(img => setImageUri(`data:${img.imageMimeType};base64,${img.imageBase64}`))
+      .catch(() => {});
   }, [id]);
 
   const startEdit = (item: ReceiptItemDto) => {
@@ -213,13 +219,29 @@ export default function ReviewScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Review Items</Text>
-          <TouchableOpacity onPress={handleDeleteReceipt} style={styles.headerBtn} disabled={deleting}>
-            {deleting
-              ? <ActivityIndicator size="small" color={colors.error} />
-              : <Ionicons name="trash-outline" size={20} color={colors.error} />}
-          </TouchableOpacity>
+          <Text style={styles.headerTitle} pointerEvents="none">Review Items</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {imageUri && (
+              <TouchableOpacity style={styles.headerBtn} onPress={() => setImageExpanded(true)}>
+                <Ionicons name="camera-outline" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handleDeleteReceipt} style={styles.headerBtn} disabled={deleting}>
+              {deleting
+                ? <ActivityIndicator size="small" color={colors.error} />
+                : <Ionicons name="trash-outline" size={20} color={colors.error} />}
+            </TouchableOpacity>
+          </View>
         </View>
+
+        <Modal visible={imageExpanded} transparent animationType="fade" onRequestClose={() => setImageExpanded(false)}>
+          <View style={styles.imageModal}>
+            <TouchableOpacity style={styles.imageModalClose} onPress={() => setImageExpanded(false)}>
+              <Ionicons name="close-circle" size={32} color="#fff" />
+            </TouchableOpacity>
+            <Image source={{ uri: imageUri! }} style={styles.imageModalFull} resizeMode="contain" />
+          </View>
+        </Modal>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {isScanned && (
@@ -496,7 +518,7 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
     alignItems: 'center',
     backgroundColor: c.background,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: c.text },
+  headerTitle: { position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 17, fontWeight: '700', color: c.text },
   content: { padding: 16, gap: 12, paddingBottom: 24 },
   subtitle: { fontSize: 13, color: c.textSecondary, lineHeight: 19 },
   card: {
@@ -647,4 +669,7 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   },
   btnDisabled: { opacity: 0.5 },
   confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  imageModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+  imageModalClose: { position: 'absolute', top: 48, right: 20, zIndex: 10 },
+  imageModalFull: { width: '100%', height: '80%' },
 });

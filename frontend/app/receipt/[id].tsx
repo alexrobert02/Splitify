@@ -461,19 +461,15 @@ export default function ReceiptDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{receipt.title || 'Receipt'}</Text>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle} numberOfLines={1} pointerEvents="none">{receipt.title || 'Receipt'}</Text>
+        {imageUri ? (
+          <TouchableOpacity style={styles.backBtn} onPress={() => setImageExpanded(true)}>
+            <Ionicons name="camera-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
-
-      {imageUri && (
-        <TouchableOpacity style={styles.imageBanner} onPress={() => setImageExpanded(true)} activeOpacity={0.85}>
-          <Image source={{ uri: imageUri }} style={styles.imageThumbnail} resizeMode="cover" />
-          <View style={styles.imageOverlay}>
-            <Ionicons name="expand-outline" size={18} color="#fff" />
-            <Text style={styles.imageOverlayText}>View photo</Text>
-          </View>
-        </TouchableOpacity>
-      )}
 
       <Modal visible={imageExpanded} transparent animationType="fade" onRequestClose={() => setImageExpanded(false)}>
         <View style={styles.imageModal}>
@@ -593,7 +589,7 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
     borderBottomColor: c.border,
   },
   backBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: c.background, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: c.text, textAlign: 'center', marginHorizontal: 8 },
+  headerTitle: { position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 17, fontWeight: '700', color: c.text },
   metaCard: {
     backgroundColor: c.surface,
     marginHorizontal: 16,
@@ -817,21 +813,6 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   saveBtn: { backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   saveText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   btnDisabled: { opacity: 0.5 },
-  imageBanner: { height: 130, position: 'relative', overflow: 'hidden' },
-  imageThumbnail: { width: '100%', height: '100%' },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 8,
-    right: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  imageOverlayText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   imageModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
   imageModalClose: { position: 'absolute', top: 48, right: 20, zIndex: 10 },
   imageModalFull: { width: '100%', height: '80%' },

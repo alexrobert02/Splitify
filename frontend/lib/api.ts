@@ -105,10 +105,7 @@ export const api = {
         body: JSON.stringify({ name, description }),
       }),
     addMember: (groupId: string, email: string) =>
-      request<GroupDto>(`/api/groups/${groupId}/members`, {
-        method: 'POST',
-        body: JSON.stringify(email),
-      }),
+      request<GroupDto>(`/api/groups/${groupId}/members?email=${encodeURIComponent(email)}`, { method: 'POST' }),
     removeMember: (groupId: string, userId: string) =>
       request<void>(`/api/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
     delete: (groupId: string) =>

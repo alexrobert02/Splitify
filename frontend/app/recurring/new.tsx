@@ -199,7 +199,7 @@ export default function NewRecurringScreen() {
                 onPress={() => handleGroupSelect(null)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.chipText, selectedGroup === null && styles.chipTextActive]}>Solo</Text>
+                <Text style={[styles.chipText, selectedGroup === null && styles.chipTextActive]}>Personal</Text>
               </TouchableOpacity>
               {groups.map(g => {
                 const active = selectedGroup?.id === g.id;
