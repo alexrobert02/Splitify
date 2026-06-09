@@ -5,6 +5,7 @@ import type {
   GroupDto,
   GroupSettlementDto,
   ReceiptDto,
+  ReceiptImageDto,
   ReceiptItemDto,
   ReceiptSummaryDto,
   AssigneeEntry,
@@ -191,6 +192,7 @@ export const api = {
       }),
     confirmReview: (id: string) => request<ReceiptDto>(`/api/receipts/${id}/confirm-review`, { method: 'POST' }),
     finalize: (id: string) => request<ReceiptDto>(`/api/receipts/${id}/finalize`, { method: 'POST' }),
+    image: (id: string) => request<ReceiptImageDto>(`/api/receipts/${id}/image`),
     summary: (id: string) => request<ReceiptSummaryDto>(`/api/receipts/${id}/summary`),
     markPaid: (receiptId: string, userId: string) =>
       request<void>(`/api/receipts/${receiptId}/participants/${userId}/pay`, { method: 'POST' }),

@@ -11,6 +11,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Linking,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -369,6 +370,8 @@ export default function ReceiptDetailScreen() {
   const [assignTarget, setAssignTarget] = useState<ReceiptItemDto | null>(null);
   const [proceeding, setProceeding] = useState(false);
   const [assigningAll, setAssigningAll] = useState(false);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageExpanded, setImageExpanded] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -380,6 +383,9 @@ export default function ReceiptDetailScreen() {
           const g = await api.groups.get(r.groupId);
           setMembers(g.members ?? []);
         }
+        api.receipts.image(id)
+          .then(img => setImageUri(`data:${img.imageMimeType};base64,${img.imageBase64}`))
+          .catch(() => {});
       } catch (e: any) {
         Alert.alert('Error', e.message);
       } finally {
@@ -458,6 +464,25 @@ export default function ReceiptDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>{receipt.title || 'Receipt'}</Text>
         <View style={{ width: 40 }} />
       </View>
+
+      {imageUri && (
+        <TouchableOpacity style={styles.imageBanner} onPress={() => setImageExpanded(true)} activeOpacity={0.85}>
+          <Image source={{ uri: imageUri }} style={styles.imageThumbnail} resizeMode="cover" />
+          <View style={styles.imageOverlay}>
+            <Ionicons name="expand-outline" size={18} color="#fff" />
+            <Text style={styles.imageOverlayText}>View photo</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      <Modal visible={imageExpanded} transparent animationType="fade" onRequestClose={() => setImageExpanded(false)}>
+        <View style={styles.imageModal}>
+          <TouchableOpacity style={styles.imageModalClose} onPress={() => setImageExpanded(false)}>
+            <Ionicons name="close-circle" size={32} color="#fff" />
+          </TouchableOpacity>
+          <Image source={{ uri: imageUri! }} style={styles.imageModalFull} resizeMode="contain" />
+        </View>
+      </Modal>
 
       {(receipt.status === 'PENDING_PAYMENT' || receipt.status === 'SETTLED') ? (
         <SummaryTab receipt={receipt} />
@@ -792,4 +817,22 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   saveBtn: { backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   saveText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   btnDisabled: { opacity: 0.5 },
+  imageBanner: { height: 130, position: 'relative', overflow: 'hidden' },
+  imageThumbnail: { width: '100%', height: '100%' },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 8,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  imageOverlayText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  imageModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+  imageModalClose: { position: 'absolute', top: 48, right: 20, zIndex: 10 },
+  imageModalFull: { width: '100%', height: '80%' },
 });

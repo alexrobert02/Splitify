@@ -62,6 +62,11 @@ export interface ReceiptDto {
   items: ReceiptItemDto[];
 }
 
+export interface ReceiptImageDto {
+  imageBase64: string;
+  imageMimeType: string;
+}
+
 export interface ItemContributionDto {
   itemId: string;
   itemName: string;

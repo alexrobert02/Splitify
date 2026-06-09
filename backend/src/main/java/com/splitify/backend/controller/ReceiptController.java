@@ -117,6 +117,13 @@ public class ReceiptController {
             receiptService.assignItem(receiptId, itemId, currentUserId(userDetails), request));
     }
 
+    @GetMapping("/{receiptId}/image")
+    public ResponseEntity<ReceiptImageDto> getReceiptImage(@AuthenticationPrincipal UserDetails userDetails,
+                                                            @PathVariable UUID receiptId) {
+        log.info("GET image receiptId={}", receiptId);
+        return ResponseEntity.ok(receiptService.getReceiptImage(receiptId, currentUserId(userDetails)));
+    }
+
     @GetMapping("/{receiptId}/summary")
     public ResponseEntity<ReceiptSummaryDto> getSummary(@AuthenticationPrincipal UserDetails userDetails,
                                                          @PathVariable UUID receiptId) {

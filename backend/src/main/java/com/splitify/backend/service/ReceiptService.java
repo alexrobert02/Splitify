@@ -1,6 +1,7 @@
 package com.splitify.backend.service;
 
 import com.splitify.backend.dto.receipt.*;
+import com.splitify.backend.dto.receipt.ReceiptImageDto;
 import com.splitify.backend.entity.*;
 import com.splitify.backend.entity.ReceiptStatus;
 import com.splitify.backend.exception.BadRequestException;
@@ -462,6 +463,15 @@ public class ReceiptService {
     }
 
     // ---- DTO mapping ----
+
+    public ReceiptImageDto getReceiptImage(UUID receiptId, UUID currentUserId) {
+        Receipt receipt = findReceipt(receiptId);
+        assertAccess(receipt, currentUserId);
+        if (receipt.getImageBase64() == null) {
+            throw new ResourceNotFoundException("No image for this receipt");
+        }
+        return new ReceiptImageDto(receipt.getImageBase64(), receipt.getImageMimeType());
+    }
 
     private ReceiptDto toDto(Receipt receipt) {
         List<ReceiptItemDto> itemDtos = receipt.getItems().stream()
