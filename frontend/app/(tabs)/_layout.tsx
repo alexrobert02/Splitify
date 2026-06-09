@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '@/context/NotificationContext';
 import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 
@@ -61,6 +62,7 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const { bottom } = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -68,8 +70,8 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.tabBarBg,
           borderTopColor: colors.border,
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + bottom,
+          paddingBottom: 8 + bottom,
           paddingTop: 4,
         },
         tabBarActiveTintColor: colors.tabBarActive,
