@@ -214,7 +214,7 @@ public class GroupService {
                 Set<UUID> paidIds = receipt.getPayments().stream()
                     .map(p -> p.getPayer().getId()).collect(Collectors.toSet());
                 if (!assigneeIds.isEmpty() && paidIds.containsAll(assigneeIds)) {
-                    receipt.setStatus(ReceiptStatus.FINALIZED);
+                    receipt.setStatus(ReceiptStatus.SETTLED);
                 }
                 receiptRepository.save(receipt);
             });

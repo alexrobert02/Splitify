@@ -212,16 +212,16 @@ export default function StatsScreen() {
     if (!user) return;
     try {
       const receipts = await api.receipts.list();
-      const finalized = receipts.filter(r => r.status === 'PENDING_PAYMENT' || r.status === 'FINALIZED');
+      const settled = receipts.filter(r => r.status === 'PENDING_PAYMENT' || r.status === 'SETTLED');
 
       const summaries = await Promise.all(
-        finalized.map(r => api.receipts.summary(r.id).catch(() => null))
+        settled.map(r => api.receipts.summary(r.id).catch(() => null))
       );
 
       const result: PaidEntry[] = [];
       summaries.forEach((summary, i) => {
         if (!summary) return;
-        const receipt = finalized[i];
+        const receipt = settled[i];
         const participant = summary.participants.find(p => p.userId === user.id && p.paid);
         if (!participant || !participant.paidAt) return;
         result.push({

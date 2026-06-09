@@ -44,7 +44,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   PENDING_REVIEW:     { label: 'Review items',   color: '#F59E0B' },
   PENDING_ASSIGNMENT: { label: 'Assign items',   color: '#3B82F6' },
   PENDING_PAYMENT:    { label: 'Pending',        color: '#EF4444' },
-  FINALIZED:          { label: 'Finalized',      color: '#10B981' },
+  SETTLED:            { label: 'Settled',        color: '#10B981' },
 };
 
 const STATUS_FILTER_OPTIONS: { key: string | null; label: string }[] = [
@@ -52,7 +52,7 @@ const STATUS_FILTER_OPTIONS: { key: string | null; label: string }[] = [
   { key: 'PENDING_REVIEW',     label: 'Review items' },
   { key: 'PENDING_ASSIGNMENT', label: 'Assign items' },
   { key: 'PENDING_PAYMENT',    label: 'Pending' },
-  { key: 'FINALIZED',          label: 'Finalized' },
+  { key: 'SETTLED',            label: 'Settled' },
 ];
 
 function StatusFilterButton({
@@ -128,7 +128,7 @@ function ReceiptCard({ receipt }: { receipt: ReceiptDto }) {
     ? `/receipt/review?id=${receipt.id}`
     : `/receipt/${receipt.id}`;
   const catCfg = catConfig[receipt.category] ?? catConfig.OTHER;
-  const statusCfg = STATUS_CONFIG[receipt.status] ?? STATUS_CONFIG.FINALIZED;
+  const statusCfg = STATUS_CONFIG[receipt.status] ?? STATUS_CONFIG.SETTLED;
   return (
     <TouchableOpacity
       style={styles.receiptCard}

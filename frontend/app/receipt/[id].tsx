@@ -459,7 +459,7 @@ export default function ReceiptDetailScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      {(receipt.status === 'PENDING_PAYMENT' || receipt.status === 'FINALIZED') ? (
+      {(receipt.status === 'PENDING_PAYMENT' || receipt.status === 'SETTLED') ? (
         <SummaryTab receipt={receipt} />
       ) : (
         <View style={{ flex: 1 }}>

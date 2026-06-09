@@ -26,7 +26,7 @@ export interface GroupDto {
 
 export type SplitType = 'EQUAL' | 'PERCENTAGE' | 'FIXED' | 'COUNT';
 export type ReceiptCategory = 'GROCERIES' | 'DINING' | 'TRANSPORT' | 'ENTERTAINMENT' | 'SHOPPING' | 'UTILITIES' | 'HEALTH' | 'OTHER';
-export type ReceiptStatus = 'PENDING_REVIEW' | 'PENDING_ASSIGNMENT' | 'PENDING_PAYMENT' | 'FINALIZED';
+export type ReceiptStatus = 'PENDING_REVIEW' | 'PENDING_ASSIGNMENT' | 'PENDING_PAYMENT' | 'SETTLED';
 
 export interface AssignmentDto {
   id: string;

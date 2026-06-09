@@ -180,7 +180,7 @@ public class RecurringExpenseService {
         boolean onlyCreator = participants.stream()
             .allMatch(p -> p.getUser().getId().equals(expense.getCreatedBy().getId()));
         if (onlyCreator) {
-            receipt.setStatus(ReceiptStatus.FINALIZED);
+            receipt.setStatus(ReceiptStatus.SETTLED);
         }
         receiptRepository.save(receipt);
 
@@ -190,8 +190,8 @@ public class RecurringExpenseService {
             .forEach(p -> notificationService.sendNotification(
                 p.getUser(),
                 NotificationType.PAYMENT_REQUESTED,
-                "Payment due: " + expense.getTitle(),
-                expense.getCreatedBy().getName() + " has charged you for " + expense.getTitle(),
+                "Payment requested",
+                expense.getCreatedBy().getName() + " requests payment for \"" + expense.getTitle() + "\"",
                 receiptIdStr
             ));
 

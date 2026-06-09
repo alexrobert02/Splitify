@@ -79,7 +79,7 @@ public class ReceiptService {
         }
         return receiptRepository.findByGroupIdOrderByCreatedAtDesc(groupId)
             .stream()
-            .filter(r -> !unpaidOnly || ((r.getStatus() == ReceiptStatus.PENDING_PAYMENT || r.getStatus() == ReceiptStatus.FINALIZED) &&
+            .filter(r -> !unpaidOnly || ((r.getStatus() == ReceiptStatus.PENDING_PAYMENT || r.getStatus() == ReceiptStatus.SETTLED) &&
                 r.getPayments().stream().noneMatch(p -> p.getPayer().getId().equals(currentUserId))))
             .map(this::toDto)
             .toList();
@@ -239,7 +239,7 @@ public class ReceiptService {
             receipt.getPayments().add(Payment.builder().receipt(receipt).payer(payer).build());
         }
         if (allParticipantsPaid(receipt)) {
-            receipt.setStatus(ReceiptStatus.FINALIZED);
+            receipt.setStatus(ReceiptStatus.SETTLED);
         }
         receiptRepository.save(receipt);
     }
@@ -263,7 +263,7 @@ public class ReceiptService {
 
         // If the scanner is the only participant, settle immediately
         if (allParticipantsPaid(saved)) {
-            saved.setStatus(ReceiptStatus.FINALIZED);
+            saved.setStatus(ReceiptStatus.SETTLED);
             receiptRepository.save(saved);
         }
 
@@ -367,7 +367,7 @@ public class ReceiptService {
                 .build();
             item.getAssignments().add(assignment);
         }
-        receipt.setStatus(ReceiptStatus.FINALIZED);
+        receipt.setStatus(ReceiptStatus.SETTLED);
         receipt.getPayments().add(Payment.builder().receipt(receipt).payer(user).build());
     }
 

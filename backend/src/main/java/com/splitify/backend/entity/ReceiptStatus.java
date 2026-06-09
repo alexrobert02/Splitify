@@ -4,5 +4,5 @@ public enum ReceiptStatus {
     PENDING_REVIEW,
     PENDING_ASSIGNMENT,
     PENDING_PAYMENT,
-    FINALIZED
+    SETTLED
 }
