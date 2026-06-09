@@ -20,6 +20,7 @@ import { useTheme, type ColorPalette } from '@/context/ThemeContext';
 import { useCategoryConfig } from '@/constants/categories';
 import type { ReceiptCategory } from '@/types';
 import { useCurrencyRates } from '@/lib/useCurrencyRates';
+import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
 
 type Period = 'day' | 'week' | 'month' | 'year' | 'all';
 
@@ -200,7 +201,9 @@ export default function StatsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const preferredCurrency = user?.preferredCurrency ?? 'RON';
-  const { convert, loading: ratesLoading } = useCurrencyRates(preferredCurrency);
+  const [displayCurrency, setDisplayCurrency] = useState(preferredCurrency);
+  const [currencyModal, setCurrencyModal] = useState(false);
+  const { convert, loading: ratesLoading } = useCurrencyRates(displayCurrency);
   const [entries, setEntries] = useState<PaidEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -263,7 +266,7 @@ export default function StatsScreen() {
     });
 
     const currencies = new Set(filtered.map(e => e.currency));
-    const mixed = currencies.size > 1 || (currencies.size === 1 && !currencies.has(preferredCurrency));
+    const mixed = currencies.size > 1 || (currencies.size === 1 && !currencies.has(displayCurrency));
 
     const catMap = new Map<ReceiptCategory, { amount: number; count: number }>();
     filtered.forEach(e => {
@@ -281,7 +284,7 @@ export default function StatsScreen() {
       byCategory,
       isMixed: mixed,
     };
-  }, [entries, range, convert, preferredCurrency]);
+  }, [entries, range, convert, displayCurrency]);
 
   if (loading || ratesLoading) {
     return (
@@ -310,6 +313,11 @@ export default function StatsScreen() {
             <Text style={styles.heading}>Statistics</Text>
             <Text style={styles.subheading}>Your paid breakdown</Text>
           </View>
+          <TouchableOpacity style={styles.currencyBtn} onPress={() => setCurrencyModal(true)} activeOpacity={0.7}>
+            <Ionicons name="globe-outline" size={14} color={colors.primary} />
+            <Text style={styles.currencyBtnText}>{displayCurrency}</Text>
+            <Ionicons name="chevron-down" size={13} color={colors.textMuted} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -364,7 +372,7 @@ export default function StatsScreen() {
           </View>
           <View>
             <Text style={styles.totalLabel}>Total Paid</Text>
-            <Text style={styles.totalAmount}>{preferredCurrency} {total.toFixed(2)}</Text>
+            <Text style={styles.totalAmount}>{displayCurrency} {total.toFixed(2)}</Text>
             <Text style={styles.totalSub}>
               {receiptCount} receipt{receiptCount !== 1 ? 's' : ''}
               {isMixed ? ' · converted' : ''}
@@ -386,13 +394,19 @@ export default function StatsScreen() {
                 key={cat.category}
                 stat={cat}
                 maxAmount={byCategory[0].amount}
-                currency={preferredCurrency}
+                currency={displayCurrency}
                 onPress={() => setSelectedCategory(cat.category)}
               />
             ))}
           </View>
         )}
       </ScrollView>
+      <CurrencyPickerModal
+        visible={currencyModal}
+        selected={displayCurrency}
+        onSelect={setDisplayCurrency}
+        onClose={() => setCurrencyModal(false)}
+      />
       <CategoryModal
         category={selectedCategory}
         entries={selectedCategory ? entries.filter(e => {
@@ -421,6 +435,16 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   },
   heading: { fontSize: 24, fontWeight: '800', color: c.text },
   subheading: { fontSize: 14, color: c.textSecondary, marginTop: 2 },
+  currencyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: c.primaryLight,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  currencyBtnText: { fontSize: 13, fontWeight: '700', color: c.primary },
 
   filterRow: { gap: 8, paddingBottom: 12 },
   filterChip: {

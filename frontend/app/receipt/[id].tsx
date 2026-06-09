@@ -486,6 +486,21 @@ export default function ReceiptDetailScreen() {
         <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.itemsList}>
             <ReceiptMeta receipt={receipt} currency={currency} />
+            {isScanner && receipt.items?.length > 0 && (
+              <TouchableOpacity
+                style={[styles.assignAllBtn, assigningAll && styles.btnDisabled]}
+                onPress={handleAssignAll}
+                disabled={assigningAll}
+              >
+                {assigningAll
+                  ? <ActivityIndicator color={colors.textMuted} size="small" />
+                  : <>
+                      <Ionicons name="people-outline" size={14} color={colors.primary} />
+                      <Text style={styles.assignAllBtnText}>Assign all equally</Text>
+                    </>
+                }
+              </TouchableOpacity>
+            )}
             {receipt.items?.length === 0 && (
               <Text style={styles.noItems}>No items detected. Try scanning again.</Text>
             )}
@@ -529,19 +544,6 @@ export default function ReceiptDetailScreen() {
           </ScrollView>
           {isScanner && (
             <View style={styles.proceedBar}>
-              <TouchableOpacity
-                style={[styles.assignAllBtn, assigningAll && styles.btnDisabled]}
-                onPress={handleAssignAll}
-                disabled={assigningAll}
-              >
-                {assigningAll
-                  ? <ActivityIndicator color={colors.primary} size="small" />
-                  : <>
-                      <Ionicons name="people-outline" size={16} color={colors.primary} />
-                      <Text style={styles.assignAllBtnText}>Assign All to Everyone Equally</Text>
-                    </>
-                }
-              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.proceedBtn, !allAssigned && styles.proceedBtnDisabled]}
                 onPress={handleProceed}
@@ -739,15 +741,14 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   assignAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    alignSelf: 'flex-start',
     gap: 6,
-    borderWidth: 1.5,
-    borderColor: c.primary,
-    borderRadius: 14,
-    paddingVertical: 12,
-    marginBottom: 8,
+    backgroundColor: c.primaryLight,
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
   },
-  assignAllBtnText: { fontSize: 14, fontWeight: '700', color: c.primary },
+  assignAllBtnText: { fontSize: 13, fontWeight: '600', color: c.primary },
   proceedBtn: {
     flexDirection: 'row',
     alignItems: 'center',
