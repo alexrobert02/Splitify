@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -383,7 +383,6 @@ export default function ReviewScreen() {
                 state={editState}
                 onChange={setEditState}
                 onSave={saveEdit}
-                onCancel={cancelEdit}
                 saving={saving}
                 colors={colors}
                 styles={styles}
@@ -414,7 +413,6 @@ export default function ReviewScreen() {
                 state={addState}
                 onChange={setAddState}
                 onSave={saveAdd}
-                onCancel={cancelAdd}
                 saving={adding}
                 colors={colors}
                 styles={styles}
@@ -431,7 +429,6 @@ function ItemForm({
   state,
   onChange,
   onSave,
-  onCancel,
   saving,
   colors,
   styles,
@@ -439,11 +436,13 @@ function ItemForm({
   state: EditState;
   onChange: (s: EditState) => void;
   onSave: () => void;
-  onCancel: () => void;
   saving: boolean;
   colors: ColorPalette;
   styles: ReturnType<typeof getStyles>;
 }) {
+  const quantityRef = useRef<TextInput>(null);
+  const unitPriceRef = useRef<TextInput>(null);
+
   return (
     <View style={styles.formInner}>
       <View style={styles.fieldGroup}>
@@ -454,44 +453,48 @@ function ItemForm({
           onChangeText={(v) => onChange({ ...state, name: v })}
           placeholder="Item name"
           placeholderTextColor={colors.textMuted}
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => quantityRef.current?.focus()}
         />
       </View>
       <View style={styles.row}>
         <View style={[styles.fieldGroup, styles.flex]}>
           <Text style={styles.fieldLabel}>Quantity</Text>
           <TextInput
+            ref={quantityRef}
             style={styles.input}
             value={state.quantity}
             onChangeText={(v) => onChange({ ...state, quantity: v })}
             keyboardType="decimal-pad"
             placeholder="1"
             placeholderTextColor={colors.textMuted}
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => unitPriceRef.current?.focus()}
           />
         </View>
         <View style={[styles.fieldGroup, styles.flex]}>
           <Text style={styles.fieldLabel}>Unit Price</Text>
           <TextInput
+            ref={unitPriceRef}
             style={styles.input}
             value={state.unitPrice}
             onChangeText={(v) => onChange({ ...state, unitPrice: v })}
             keyboardType="decimal-pad"
             placeholder="0.00"
             placeholderTextColor={colors.textMuted}
+            returnKeyType="done"
           />
         </View>
       </View>
-      <View style={styles.editActions}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={saving}>
-          <Text style={styles.cancelBtnText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.saveBtn} onPress={onSave} disabled={saving}>
-          {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.saveBtnText}>Save</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.saveBtn} onPress={onSave} disabled={saving}>
+        {saving ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.saveBtnText}>Save</Text>
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -593,22 +596,12 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
     backgroundColor: c.background,
   },
   row: { flexDirection: 'row', gap: 12 },
-  editActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: c.border,
-    alignItems: 'center',
-  },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: c.textSecondary },
   saveBtn: {
-    flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
     backgroundColor: c.primary,
     alignItems: 'center',
+    marginTop: 4,
   },
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   addBtn: {

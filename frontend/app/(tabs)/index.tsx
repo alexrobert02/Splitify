@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   Alert,
   Modal,
   TextInput,
-  KeyboardAvoidingView,
+  Keyboard,
+  Animated,
+  Platform,
   BackHandler,
   Linking,
 } from 'react-native';
@@ -156,6 +158,20 @@ function ReceiptCard({ receipt }: { receipt: ReceiptDto }) {
   );
 }
 
+function useKeyboardOffset() {
+  const offset = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) =>
+      Animated.timing(offset, { toValue: e.endCoordinates.height, duration: Platform.OS === 'ios' ? e.duration : 0, useNativeDriver: false }).start()
+    );
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', (e) =>
+      Animated.timing(offset, { toValue: 0, duration: Platform.OS === 'ios' ? e.duration : 0, useNativeDriver: false }).start()
+    );
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+  return offset;
+}
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function GroupsTab() {
@@ -195,6 +211,8 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
+  const descRef = useRef<TextInput>(null);
+  const kbOffset = useKeyboardOffset();
 
   const load = async () => {
     try {
@@ -301,25 +319,38 @@ function PickerView({ onSelectSolo, onSelectGroup }: { onSelectSolo: () => void;
         <Text style={styles.fabExtendedText}>New Group</Text>
       </TouchableOpacity>
 
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
-          <View style={styles.modalSheet}>
+      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
+        <TouchableOpacity style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.overlay }]} onPress={() => setModalVisible(false)} activeOpacity={1} />
+        <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
+          <Animated.View style={[styles.modalSheet, { marginBottom: kbOffset }]} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>New Group</Text>
             <Text style={styles.label}>Group name</Text>
-            <TextInput style={styles.input} placeholder="Friends, Family, Work…" placeholderTextColor={colors.textMuted} value={newName} onChangeText={setNewName} />
+            <TextInput
+              style={styles.input}
+              placeholder="Friends, Family, Work…"
+              placeholderTextColor={colors.textMuted}
+              value={newName}
+              onChangeText={setNewName}
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => descRef.current?.focus()}
+            />
             <Text style={styles.label}>Description (optional)</Text>
-            <TextInput style={styles.input} placeholder="What's this group for?" placeholderTextColor={colors.textMuted} value={newDesc} onChangeText={setNewDesc} />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.primaryBtn, creating && styles.btnDisabled]} onPress={handleCreate} disabled={creating}>
-                {creating ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryBtnText}>Create</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
+            <TextInput
+              ref={descRef}
+              style={styles.input}
+              placeholder="What's this group for?"
+              placeholderTextColor={colors.textMuted}
+              value={newDesc}
+              onChangeText={setNewDesc}
+              returnKeyType="done"
+            />
+            <TouchableOpacity style={[styles.primaryBtn, creating && styles.btnDisabled]} onPress={handleCreate} disabled={creating}>
+              {creating ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryBtnText}>Create</Text>}
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -459,6 +490,7 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
   const [settlement, setSettlement] = useState<GroupSettlementDto | null>(null);
   const [settlementLoading, setSettlementLoading] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
+  const addKbOffset = useKeyboardOffset();
 
   const loadData = useCallback(async (isRefresh = false, unpaid = false) => {
     if (!isRefresh) setReceiptsLoading(true);
@@ -682,9 +714,10 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={addModal} transparent animationType="slide">
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
-          <View style={styles.modalSheet}>
+      <Modal visible={addModal} transparent animationType="slide" onRequestClose={() => { setAddModal(false); setEmail(''); }}>
+        <TouchableOpacity style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.overlay }]} onPress={() => { setAddModal(false); setEmail(''); }} activeOpacity={1} />
+        <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
+          <Animated.View style={[styles.modalSheet, { marginBottom: addKbOffset }]} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Add Member</Text>
             <Text style={styles.modalSub}>Invite someone by their email address</Text>
@@ -699,20 +732,15 @@ function GroupView({ id, onBack }: { id: string; onBack: () => void }) {
               autoCapitalize="none"
               autoFocus
             />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setAddModal(false); setEmail(''); }}>
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.primaryBtn, (adding || !email.trim()) && styles.btnDisabled]}
-                onPress={handleAddMember}
-                disabled={adding || !email.trim()}
-              >
-                {adding ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryBtnText}>Add</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
+            <TouchableOpacity
+              style={[styles.primaryBtn, (adding || !email.trim()) && styles.btnDisabled]}
+              onPress={handleAddMember}
+              disabled={adding || !email.trim()}
+            >
+              {adding ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryBtnText}>Add</Text>}
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
       </Modal>
 
       <Modal visible={settleVisible} transparent animationType="slide" onRequestClose={() => setSettleVisible(false)}>
@@ -921,10 +949,7 @@ const getStyles = (c: ColorPalette) => StyleSheet.create({
   modalSub: { fontSize: 14, color: c.textSecondary, marginBottom: 20 },
   label: { fontSize: 13, fontWeight: '600', color: c.text, marginBottom: 6 },
   input: { borderWidth: 1.5, borderColor: c.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: c.text, backgroundColor: c.background, marginBottom: 16 },
-  modalActions: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  cancelBtn: { flex: 1, borderWidth: 1.5, borderColor: c.border, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  cancelText: { fontSize: 15, fontWeight: '600', color: c.textSecondary },
-  primaryBtn: { flex: 1, backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  primaryBtn: { marginTop: 4, backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   primaryBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
 

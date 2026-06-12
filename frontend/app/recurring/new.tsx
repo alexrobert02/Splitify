@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -56,6 +56,7 @@ export default function NewRecurringScreen() {
   const [participants, setParticipants]     = useState<ParticipantEntry[]>([]);
   const [saving, setSaving]                 = useState(false);
   const { user } = useAuth();
+  const amountRef = useRef<TextInput>(null);
 
   useEffect(() => { api.groups.list().then(setGroups).catch(() => {}); }, []);
   useEffect(() => { if (user) setParticipants([{ user: user as UserDto, splitValue: '' }]); }, [user]);
@@ -132,6 +133,9 @@ export default function NewRecurringScreen() {
               onChangeText={setTitle}
               placeholder="e.g. Monthly rent"
               placeholderTextColor={colors.textMuted}
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => amountRef.current?.focus()}
             />
           </View>
 
@@ -139,12 +143,14 @@ export default function NewRecurringScreen() {
             <View style={styles.flex}>
               <Text style={styles.label}>Amount</Text>
               <TextInput
+                ref={amountRef}
                 style={styles.input}
                 value={amount}
                 onChangeText={setAmount}
                 placeholder="0.00"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="decimal-pad"
+                returnKeyType="done"
               />
             </View>
             <View style={{ width: 120 }}>
