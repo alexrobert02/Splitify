@@ -28,6 +28,7 @@ public class GroupService {
     private final UserRepository userRepository;
     private final ReceiptRepository receiptRepository;
     private final NotificationService notificationService;
+    private final CurrencyService currencyService;
 
     @Transactional
     public GroupDto createGroup(UUID currentUserId, CreateGroupRequest request) {
@@ -107,28 +108,31 @@ public class GroupService {
         Group group = findGroup(groupId);
         assertMember(group, currentUserId);
 
+        User currentUser = findUser(currentUserId);
+        String targetCurrency = currentUser.getPreferredCurrency() != null
+            ? currentUser.getPreferredCurrency().toUpperCase() : "RON";
+
         List<Receipt> pendingReceipts = receiptRepository.findByGroupIdOrderByCreatedAtDesc(groupId)
             .stream()
             .filter(r -> r.getStatus() == ReceiptStatus.PENDING_PAYMENT)
             .toList();
 
-        // net balance per user: positive = is owed money, negative = owes money
+        // net balance per user, normalized into targetCurrency: positive = is owed money, negative = owes money
         Map<UUID, BigDecimal> balance = new HashMap<>();
         Map<UUID, String> names = new HashMap<>();
         Map<UUID, String> revolutTags = new HashMap<>();
-        String currency = group.getMembers().isEmpty() ? "RON" : "RON";
 
         for (Receipt receipt : pendingReceipts) {
             UUID scannerId = receipt.getCreatedBy().getId();
             names.put(scannerId, receipt.getCreatedBy().getName());
             revolutTags.put(scannerId, receipt.getCreatedBy().getRevolutTag());
-            if (receipt.getCurrency() != null) currency = receipt.getCurrency();
+            BigDecimal rate = conversionRate(receipt.getCurrency(), targetCurrency);
 
             Set<UUID> paidUserIds = receipt.getPayments().stream()
                 .map(p -> p.getPayer().getId())
                 .collect(Collectors.toSet());
 
-            // sum amountOwed per non-scanner participant for this receipt
+            // sum amountOwed per non-scanner participant for this receipt, converted to targetCurrency
             Map<UUID, BigDecimal> receiptOwed = new HashMap<>();
             for (ReceiptItem item : receipt.getItems()) {
                 for (ItemAssignment assignment : item.getAssignments()) {
@@ -137,7 +141,7 @@ public class GroupService {
                         names.put(uid, assignment.getUser().getName());
                         revolutTags.put(uid, assignment.getUser().getRevolutTag());
                         BigDecimal amt = assignment.getAmountOwed() != null ? assignment.getAmountOwed() : BigDecimal.ZERO;
-                        receiptOwed.merge(uid, amt, BigDecimal::add);
+                        receiptOwed.merge(uid, amt.multiply(rate), BigDecimal::add);
                     }
                 }
             }
@@ -173,7 +177,7 @@ public class GroupService {
                     creditorIds.get(i), names.get(creditorIds.get(i)),
                     revolutTags.get(creditorIds.get(i)),
                     settle.setScale(2, RoundingMode.HALF_UP),
-                    currency
+                    targetCurrency
                 ));
             }
             creditorAmts.set(i, creditorAmts.get(i).subtract(settle));
@@ -186,25 +190,36 @@ public class GroupService {
     }
 
     @Transactional
-    public void settleDebt(UUID groupId, UUID currentUserId, UUID debtorId) {
+    public void settleDebt(UUID groupId, UUID currentUserId, UUID otherUserId) {
         Group group = findGroup(groupId);
         assertMember(group, currentUserId);
 
-        User debtor = findUser(debtorId);
+        User currentUser = findUser(currentUserId);
+        User otherUser = findUser(otherUserId);
 
+        // The net debt shown to the user can be composed of receipts scanned by either
+        // party (e.g. A owes B on one receipt while B owes A on another, netted together).
+        // Settling it must clear the pending receipts in both directions between the pair,
+        // not just the ones the caller happens to have scanned.
         receiptRepository.findByGroupIdOrderByCreatedAtDesc(groupId).stream()
             .filter(r -> r.getStatus() == ReceiptStatus.PENDING_PAYMENT)
-            .filter(r -> r.getCreatedBy().getId().equals(currentUserId))
+            .filter(r -> {
+                UUID creatorId = r.getCreatedBy().getId();
+                return creatorId.equals(currentUserId) || creatorId.equals(otherUserId);
+            })
             .forEach(receipt -> {
+                UUID creatorId = receipt.getCreatedBy().getId();
+                User payer = creatorId.equals(currentUserId) ? otherUser : currentUser;
+
                 boolean hasAssignment = receipt.getItems().stream()
                     .flatMap(item -> item.getAssignments().stream())
-                    .anyMatch(a -> a.getUser().getId().equals(debtorId));
+                    .anyMatch(a -> a.getUser().getId().equals(payer.getId()));
                 if (!hasAssignment) return;
 
                 boolean alreadyPaid = receipt.getPayments().stream()
-                    .anyMatch(p -> p.getPayer().getId().equals(debtorId));
+                    .anyMatch(p -> p.getPayer().getId().equals(payer.getId()));
                 if (!alreadyPaid) {
-                    receipt.getPayments().add(Payment.builder().receipt(receipt).payer(debtor).build());
+                    receipt.getPayments().add(Payment.builder().receipt(receipt).payer(payer).build());
                 }
 
                 Set<UUID> assigneeIds = receipt.getItems().stream()
@@ -218,6 +233,15 @@ public class GroupService {
                 }
                 receiptRepository.save(receipt);
             });
+    }
+
+    private BigDecimal conversionRate(String fromCurrency, String toCurrency) {
+        String from = fromCurrency != null ? fromCurrency.toUpperCase() : "RON";
+        if (from.equals(toCurrency)) {
+            return BigDecimal.ONE;
+        }
+        BigDecimal rate = currencyService.getRates(from).get(toCurrency);
+        return rate != null ? rate : BigDecimal.ONE;
     }
 
     private Group findGroup(UUID id) {

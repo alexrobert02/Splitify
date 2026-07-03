@@ -66,8 +66,8 @@ public class GroupController {
     public ResponseEntity<Void> settleDebt(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable UUID groupId,
-            @RequestBody UUID creditorId) {
-        groupService.settleDebt(groupId, currentUserId(userDetails), creditorId);
+            @RequestBody UUID otherUserId) {
+        groupService.settleDebt(groupId, currentUserId(userDetails), otherUserId);
         return ResponseEntity.noContent().build();
     }
 

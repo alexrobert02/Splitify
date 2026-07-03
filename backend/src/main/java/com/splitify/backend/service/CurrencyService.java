@@ -20,11 +20,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class CurrencyService {
 
-    private static final String FRANKFURTER_URL = "https://api.frankfurter.app/latest?from=";
+    private static final String FRANKFURTER_URL = "https://api.frankfurter.dev/v1/latest?base=";
     private static final long CACHE_TTL_SECONDS = 3600;
 
     private final JsonMapper jsonMapper;
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
     private final Map<String, CachedRates> cache = new ConcurrentHashMap<>();
 
     private record CachedRates(Map<String, BigDecimal> rates, Instant fetchedAt) {
