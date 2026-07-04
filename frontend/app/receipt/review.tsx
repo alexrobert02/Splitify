@@ -27,6 +27,12 @@ type EditState = { name: string; quantity: string; unitPrice: string };
 
 const emptyEdit = (): EditState => ({ name: '', quantity: '1', unitPrice: '' });
 
+const isItemFormValid = (state: EditState): boolean => {
+  const qty = parseFloat(state.quantity);
+  const price = parseFloat(state.unitPrice);
+  return !!state.name.trim() && !isNaN(qty) && qty > 0 && !isNaN(price) && price >= 0;
+};
+
 export default function ReviewScreen() {
   const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
   const { colors } = useTheme();
@@ -123,19 +129,13 @@ export default function ReviewScreen() {
   const cancelEdit = () => setEditingId(null);
 
   const saveEdit = async () => {
-    if (!editingId) return;
-    const qty = parseFloat(editState.quantity);
-    const price = parseFloat(editState.unitPrice);
-    if (!editState.name.trim() || isNaN(qty) || isNaN(price) || qty <= 0 || price < 0) {
-      Alert.alert('Invalid input', 'Please enter a valid name, quantity, and price.');
-      return;
-    }
+    if (!editingId || !isItemFormValid(editState)) return;
     setSaving(true);
     try {
       const updated = await api.receipts.updateItem(id, editingId, {
         name: editState.name.trim(),
-        quantity: qty,
-        unitPrice: price,
+        quantity: parseFloat(editState.quantity),
+        unitPrice: parseFloat(editState.unitPrice),
       });
       setReceipt((prev) =>
         prev ? { ...prev, items: prev.items.map((i) => (i.id === editingId ? updated : i)) } : prev
@@ -174,18 +174,13 @@ export default function ReviewScreen() {
   };
 
   const saveAdd = async () => {
-    const qty = parseFloat(addState.quantity);
-    const price = parseFloat(addState.unitPrice);
-    if (!addState.name.trim() || isNaN(qty) || isNaN(price) || qty <= 0 || price < 0) {
-      Alert.alert('Invalid input', 'Please enter a valid name, quantity, and price.');
-      return;
-    }
+    if (!isItemFormValid(addState)) return;
     setAdding(true);
     try {
       await api.receipts.addItem(id, {
         name: addState.name.trim(),
-        quantity: qty,
-        unitPrice: price,
+        quantity: parseFloat(addState.quantity),
+        unitPrice: parseFloat(addState.unitPrice),
       });
       const updated = await api.receipts.get(id);
       setReceipt(updated);
@@ -442,6 +437,7 @@ function ItemForm({
 }) {
   const quantityRef = useRef<TextInput>(null);
   const unitPriceRef = useRef<TextInput>(null);
+  const canSave = isItemFormValid(state);
 
   return (
     <View style={styles.formInner}>
@@ -488,7 +484,11 @@ function ItemForm({
           />
         </View>
       </View>
-      <TouchableOpacity style={styles.saveBtn} onPress={onSave} disabled={saving}>
+      <TouchableOpacity
+        style={[styles.saveBtn, (!canSave || saving) && styles.btnDisabled]}
+        onPress={onSave}
+        disabled={!canSave || saving}
+      >
         {saving ? (
           <ActivityIndicator size="small" color="#fff" />
         ) : (

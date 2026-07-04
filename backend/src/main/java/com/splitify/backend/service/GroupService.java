@@ -117,7 +117,6 @@ public class GroupService {
             .filter(r -> r.getStatus() == ReceiptStatus.PENDING_PAYMENT)
             .toList();
 
-        // net balance per user, normalized into targetCurrency: positive = is owed money, negative = owes money
         Map<UUID, BigDecimal> balance = new HashMap<>();
         Map<UUID, String> names = new HashMap<>();
         Map<UUID, String> revolutTags = new HashMap<>();
@@ -132,7 +131,6 @@ public class GroupService {
                 .map(p -> p.getPayer().getId())
                 .collect(Collectors.toSet());
 
-            // sum amountOwed per non-scanner participant for this receipt, converted to targetCurrency
             Map<UUID, BigDecimal> receiptOwed = new HashMap<>();
             for (ReceiptItem item : receipt.getItems()) {
                 for (ItemAssignment assignment : item.getAssignments()) {
@@ -155,7 +153,6 @@ public class GroupService {
             }
         }
 
-        // Greedy debt simplification
         List<UUID> creditorIds = new ArrayList<>();
         List<BigDecimal> creditorAmts = new ArrayList<>();
         List<UUID> debtorIds = new ArrayList<>();
@@ -197,10 +194,6 @@ public class GroupService {
         User currentUser = findUser(currentUserId);
         User otherUser = findUser(otherUserId);
 
-        // The net debt shown to the user can be composed of receipts scanned by either
-        // party (e.g. A owes B on one receipt while B owes A on another, netted together).
-        // Settling it must clear the pending receipts in both directions between the pair,
-        // not just the ones the caller happens to have scanned.
         receiptRepository.findByGroupIdOrderByCreatedAtDesc(groupId).stream()
             .filter(r -> r.getStatus() == ReceiptStatus.PENDING_PAYMENT)
             .filter(r -> {
